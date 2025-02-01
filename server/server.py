@@ -55,16 +55,20 @@ parser.add_argument("--port", type=int, default=8020)
 parser.add_argument("-m", "--model", type=Path, required=True)
 parser.add_argument("-c", "--codec", type=Path, required=True)
 parser.add_argument("-a", "--audio", type=Path, default="")
+parser.add_argument("--cache-bits", type=int, choices=[4, 6, 8, 16], default=16)
 parser.add_argument("--device", default="cuda")
-parser.add_argument("--dtype", default="bfloat16")
-parser.add_argument("--max_seq_len", type=int, default=2048)
-parser.add_argument("--sample_rate", type=int, default=16000)
+parser.add_argument(
+    "--dtype", choices=["float16", "bfloat16", "float32"], default="float32"
+)
+parser.add_argument("--max-seq-len", type=int, default=2048)
+parser.add_argument("--sample-rate", type=int, default=16000)
 args = parser.parse_args()
 
 model = Model(
     model=args.model,
     codec=args.codec,
     audio=args.audio,
+    cache_bits=args.cache_bits,
     device=args.device,
     dtype=args.dtype,
     max_seq_len=args.max_seq_len,

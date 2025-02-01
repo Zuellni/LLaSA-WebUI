@@ -2,13 +2,16 @@ import json
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Generator, Literal
 
 import torch
 import torchaudio
 from exllamav2 import (
     ExLlamaV2,
     ExLlamaV2Cache,
+    ExLlamaV2Cache_Q4,
+    ExLlamaV2Cache_Q6,
+    ExLlamaV2Cache_Q8,
     ExLlamaV2Config,
     ExLlamaV2Tokenizer,
 )
@@ -39,8 +42,9 @@ class Model:
         model: Path,
         codec: Path,
         audio: Path,
+        cache_bits: Literal[4, 6, 8, 16] = 16,
         device: str = "cuda",
-        dtype: str = "bfloat16",
+        dtype: Literal["float16", "bfloat16", "float32"] = "float32",
         max_seq_len: int = 2048,
         sample_rate: int = 16000,
     ) -> None:
@@ -49,7 +53,7 @@ class Model:
         self.max_seq_len = max_seq_len
         self.sample_rate = sample_rate
 
-        self.model = self.load_model(model)
+        self.model = self.load_model(model, cache_bits)
         self.codec = self.load_codec(codec)
         self.audio = self.load_audio(audio)
 
@@ -57,14 +61,21 @@ class Model:
         self.template = Template(template)
         self.pattern = re.compile(r"<\|s_\d+\|>")
 
-    def load_model(self, path: Path) -> ExLlamaV2DynamicGenerator:
+    def load_model(self, path: Path, cache_bits: int) -> ExLlamaV2DynamicGenerator:
         with Timer() as timer:
             config = ExLlamaV2Config(str(path))
             config.max_seq_len = self.max_seq_len
-
             model = ExLlamaV2(config, lazy_load=True)
-            cache = ExLlamaV2Cache(model, lazy=True)
-            model.load_autosplit(cache)
+
+            caches = {
+                4: lambda m: ExLlamaV2Cache_Q4(m, lazy=True),
+                6: lambda m: ExLlamaV2Cache_Q6(m, lazy=True),
+                8: lambda m: ExLlamaV2Cache_Q8(m, lazy=True),
+                16: lambda m: ExLlamaV2Cache(m, lazy=True),
+            }
+
+            cache = caches[cache_bits](model)
+            model.load_autosplit(cache, progress=True)
 
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
             generator = ExLlamaV2DynamicGenerator(model, cache, tokenizer)
