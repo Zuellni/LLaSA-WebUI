@@ -1,5 +1,5 @@
 # LLaSA TTS Server
-A simple server (and client) for [LLaSA TTS](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) using [ExLlamaV2](https://github.com/turboderp-org/exllamav2).
+A simple server (and client) for [LLaSA TTS](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) and [FastAPI](https://github.com/fastapi/fastapi).
 
 ## Installation
 ```sh
