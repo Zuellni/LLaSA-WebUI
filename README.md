@@ -6,6 +6,7 @@ A simple server (and client) for [LLaSA TTS](https://huggingface.co/collections/
 git clone https://github.com/zuellni/llasa-tts-server
 cd llasa-tts-server
 pip install -r requirements.txt
+spacy download en_core_web_sm
 ```
 
 ## Download
