@@ -15,8 +15,8 @@ git clone https://huggingface.co/hkustaudio/llasa-1b             model # 1b @ bf
 git clone https://huggingface.co/annuvin/llasa-3b-8.0bpw-h8-exl2 model # 3b @ 8.0bpw
 git clone https://huggingface.co/hkustaudio/llasa-3b             model # 3b @ bf16
 
+git clone https://huggingface.co/annuvin/llasa-8b-4.0bpw-exl2    model # 8b @ 4.0bpw
 git clone https://huggingface.co/annuvin/llasa-8b-6.0bpw-exl2    model # 8b @ 6.0bpw
-git clone https://huggingface.co/annuvin/llasa-8b-6.5bpw-h8-exl2 model # 8b @ 6.5bpw
 git clone https://huggingface.co/annuvin/llasa-8b-8.0bpw-h8-exl2 model # 8b @ 8.0bpw
 git clone https://huggingface.co/hkustaudio/llasa-8b             model # 8b @ bf16
 
