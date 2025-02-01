@@ -3,6 +3,7 @@ fastapi-slim
 jinja2
 pydantic
 pydantic-core
+spacy
 torch
 torchaudio
 uvicorn
