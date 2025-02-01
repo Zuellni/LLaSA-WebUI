@@ -1,0 +1,9 @@
+exllamav2
+fastapi-slim
+jinja2
+pydantic
+pydantic-core
+torch
+torchaudio
+uvicorn
+xcodec2

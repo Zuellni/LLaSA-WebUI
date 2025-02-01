@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>TTS</title>
+    <link href="icon.png" rel="icon">
+    <link href="style.css" rel="stylesheet">
+    <script defer src="script.js"></script>
+</head>
+
+<body>
+    <audio></audio>
+    <form>
+        <h1>TTS</h1>
+
+        <hr>
+
+        <fieldset>
+            <label for="text">Text</label>
+            <textarea id="text" name="text"></textarea>
+        </fieldset>
+
+        <label for="audio">Audio</label>
+        <select id="audio" name="audio">
+            <option value="none">none</option>
+        </select>
+
+        <label for="maxLen">Chunk</label>
+        <input id="maxLen" name="max_len" type="number">
+
+        <label for="format">Format</label>
+        <select id="format" name="format"></select>
+
+        <label for="sampleRate">Rate</label>
+        <input id="sampleRate" name="sample_rate" type="number">
+
+        <label for="reuse">Reuse</label>
+        <select id="reuse" name="reuse">
+            <option value="false">false</option>
+            <option value="true">true</option>
+        </select>
+
+        <label for="seed">Seed</label>
+        <input id="seed" name="seed" type="number">
+
+        <label for="repetitionPenalty">Penalty</label>
+        <input id="repetitionPenalty" name="repetition_penalty" step="0.001" type="number">
+
+        <label for="temperature">Temp</label>
+        <input id="temperature" name="temperature" step="0.001" type="number">
+
+        <label for="topK">Top K</label>
+        <input id="topK" name="top_k" type="number">
+
+        <label for="topP">Top P</label>
+        <input id="topP" name="top_p" step="0.001" type="number">
+
+        <hr>
+
+        <input id="generate" type="button" value="Generate">
+        <input id="stream" type="button" value="Stream">
+    </form>
+</body>
+
+</html>
