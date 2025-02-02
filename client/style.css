@@ -11,9 +11,9 @@
 * {
     font: bold 1rem "Noto Sans";
     appearance: none;
+    border: none;
     box-sizing: border-box;
     color: var(--color);
-    border: 0;
     margin: 0;
     outline: 0;
     padding: 0;
@@ -42,11 +42,10 @@ h1 {
 
 form {
     display: grid;
-    grid-template-columns: 5rem 1fr 5rem 1fr;
+    grid-template-columns: 3.5rem 1fr 3.5rem 1fr;
     align-items: center;
     border-radius: 1rem;
     gap: 1rem;
-    margin: 1rem;
     padding: 1rem;
     background: var(--main);
     box-shadow: 1rem 1rem var(--shadow);
@@ -55,7 +54,7 @@ form {
 fieldset {
     display: grid;
     grid-column: span 4;
-    grid-template-columns: 5rem 1fr;
+    grid-template-columns: 3.5rem 1fr;
     align-items: center;
     gap: 1rem;
 }
@@ -92,8 +91,8 @@ input {
         }
     }
 
+    &[type=button],
     &[type=submit] {
-        grid-column: span 4;
         text-transform: uppercase;
         cursor: pointer;
         background: var(--color);
@@ -105,10 +104,18 @@ input {
             color: var(--color);
         }
     }
+
+    &[type=submit] {
+        grid-column: span 4;
+    }
+
+    &[type=text] {
+        grid-column: span 2;
+    }
 }
 
 select {
-    &#audio {
+    &#voice {
         text-transform: capitalize;
     }
 }
@@ -116,7 +123,6 @@ select {
 textarea {
     width: 100%;
     min-width: 100%;
-    max-width: calc(100vw - 16rem);
     min-height: 3.5rem;
     resize: horizontal;
 

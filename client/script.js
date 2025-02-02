@@ -1,10 +1,10 @@
-const url = "http://127.0.0.1:8020"
-const player = document.querySelector("audio")
 const form = document.querySelector("form")
-const button = form.querySelector("#generate")
+const address = form.querySelector("#address")
+const connect = form.querySelector("#connect")
 
-const text = form.querySelector("#text")
-const audio = form.querySelector("#audio")
+const input = form.querySelector("#input")
+const voice = form.querySelector("#voice")
+
 const format = form.querySelector("#format")
 const maxLen = form.querySelector("#maxLen")
 const repetitionPenalty = form.querySelector("#repetitionPenalty")
@@ -13,61 +13,70 @@ const temperature = form.querySelector("#temperature")
 const topK = form.querySelector("#topK")
 const topP = form.querySelector("#topP")
 
-const getSettings = async () => {
-    const response = await fetch(`${url}/settings`)
-    const data = await response.json()
+const generate = form.querySelector("#generate")
+const audio = form.querySelector("audio")
 
-    maxLen.value = parseInt(data.max_len)
-    repetitionPenalty.value = parseFloat(data.repetition_penalty)
-    sampleRate.value = parseInt(data.sample_rate)
-    temperature.value = parseFloat(data.temperature)
-    topK.value = parseInt(data.top_k)
-    topP.value = parseFloat(data.top_p)
+connect.addEventListener("click", async () => {
+    try {
+        connect.value = "Connecting..."
+        const response = await fetch(`${address.value}/settings`)
+        const data = await response.json()
 
-    for (const entry of data.audio) {
-        const option = document.createElement("option")
-        option.value = entry
-        option.textContent = entry
-        audio.append(option)
+        maxLen.value = parseInt(data.max_len)
+        repetitionPenalty.value = parseFloat(data.repetition_penalty)
+        sampleRate.value = parseInt(data.sample_rate)
+        temperature.value = parseFloat(data.temperature)
+        topK.value = parseInt(data.top_k)
+        topP.value = parseFloat(data.top_p)
+
+        for (const entry of data.audio) {
+            const option = document.createElement("option")
+            option.value = entry
+            option.textContent = entry
+            voice.append(option)
+        }
+
+        for (const entry of data.format) {
+            const option = document.createElement("option")
+            option.value = entry
+            option.textContent = entry
+            format.append(option)
+        }
+
+        connect.value = "Connected"
+    } catch (error) {
+        connect.value = "Error"
+        console.error(error)
     }
-
-    for (const entry of data.format) {
-        const option = document.createElement("option")
-        option.value = entry
-        option.textContent = entry
-        format.append(option)
-    }
-}
+})
 
 form.addEventListener("submit", async (event) => {
     event.preventDefault()
-    button.value = "Generating..."
+    generate.value = "Generating..."
 
     const data = new FormData(form)
     const obj = Object.fromEntries(data.entries())
 
     try {
-        const response = await fetch(`${url}/generate`, {
+        const response = await fetch(`${address.value}/generate`, {
             method: "post",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(obj),
         })
 
         const blob = await response.blob()
-        player.src = URL.createObjectURL(blob)
-        player.title = `${audio.value}.${format.value}`
-        player.play()
+        audio.src = URL.createObjectURL(blob)
+        audio.title = `${voice.value}.${format.value}`
+        audio.play()
 
-        button.value = "Generate"
+        generate.value = "Generate"
     } catch {
-        button.value = "Error"
+        generate.value = "Error"
+        console.error(error)
     }
 })
 
-text.addEventListener("input", () => {
-    text.style.height = ""
-    text.style.height = `${text.scrollHeight}px`
-    text.style.maxHeight = `${window.innerHeight - form.offsetHeight}px`
+input.addEventListener("input", () => {
+    input.style.height = ""
+    input.style.height = `${input.scrollHeight}px`
 })
-
-getSettings()

@@ -1,5 +1,5 @@
 # LLaSA Server
-Server and client for [LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) and [FastAPI](https://github.com/fastapi/fastapi).
+Server for [LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) and [FastAPI](https://github.com/fastapi/fastapi).
 ## Installation
 ```sh
 git clone https://github.com/zuellni/llasa-server
@@ -37,5 +37,4 @@ python server -m model -c codec -a audio
 ### Client
 ```sh
 python -m http.server -b 127.0.0.1 8021 -d client
-start http://127.0.0.1:8021
 ```
