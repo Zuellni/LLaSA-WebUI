@@ -6,6 +6,7 @@ from warnings import simplefilter
 import spacy
 import torch
 from rich import print
+from torch import Tensor
 from torchaudio import functional as F
 
 nlp = spacy.load("en_core_web_sm")
@@ -33,21 +34,17 @@ class Timer:
         )
 
 
-def process_audio(
-    input: torch.Tensor, input_rate: int, output_rate: int, output_loudness: int = -20.0
-) -> torch.Tensor:
-    if input.shape[0] > 1:
-        input = torch.mean(input, dim=0, keepdim=True)
+def process_audio(audio: Tensor, input_rate: int, output_rate: int) -> Tensor:
+    if audio.shape[0] > 1:
+        audio = torch.mean(audio, dim=0, keepdim=True)
 
     if input_rate != output_rate:
-        input = F.resample(input, input_rate, output_rate)
+        audio = F.resample(audio, input_rate, output_rate)
 
-    loudness = F.loudness(input, output_rate)
-    gain = torch.pow(10.0, (output_loudness - loudness) / 20.0)
-    return input * gain
+    return audio
 
 
-def clean_text(text: list[str] | str) -> str:
+def clean_text(text: str | list[str]) -> str:
     if isinstance(text, list):
         text = "\n".join(text)
 

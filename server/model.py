@@ -1,7 +1,7 @@
 import json
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, Generator, Literal
+from typing import Any, Callable, Generator
 
 import torch
 import torchaudio
@@ -26,6 +26,19 @@ import utils
 from schema import Query
 from utils import Timer
 
+caches = {
+    4: lambda model: ExLlamaV2Cache_Q4(model, lazy=True),
+    6: lambda model: ExLlamaV2Cache_Q6(model, lazy=True),
+    8: lambda model: ExLlamaV2Cache_Q8(model, lazy=True),
+    16: lambda model: ExLlamaV2Cache(model, lazy=True),
+}
+
+dtypes = {
+    "fp16": torch.float16,
+    "bf16": torch.bfloat16,
+    "fp32": torch.float32,
+}
+
 
 class Model:
     @staticmethod
@@ -41,14 +54,14 @@ class Model:
         model: Path,
         codec: Path,
         audio: Path,
-        cache_bits: Literal[4, 6, 8, 16] = 16,
+        cache_bits: int = 16,
         device: str = "cuda",
-        dtype: Literal["float16", "bfloat16", "float32"] = "float32",
+        dtype: str = "fp32",
         max_seq_len: int = 2048,
         sample_rate: int = 16000,
     ) -> None:
         self.device = device
-        self.dtype = getattr(torch, dtype)
+        self.dtype = dtypes.get(dtype, "fp32")
         self.max_seq_len = max_seq_len
         self.sample_rate = sample_rate
 
@@ -75,16 +88,9 @@ class Model:
         with Timer() as timer:
             config = ExLlamaV2Config(str(path))
             config.max_seq_len = self.max_seq_len
+
             model = ExLlamaV2(config, lazy_load=True)
-
-            caches = {
-                4: lambda m: ExLlamaV2Cache_Q4(m, lazy=True),
-                6: lambda m: ExLlamaV2Cache_Q6(m, lazy=True),
-                8: lambda m: ExLlamaV2Cache_Q8(m, lazy=True),
-                16: lambda m: ExLlamaV2Cache(m, lazy=True),
-            }
-
-            cache = caches[cache_bits](model)
+            cache = caches.get(cache_bits, 16)(model)
             model.load_autosplit(cache)
 
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
@@ -134,9 +140,11 @@ class Model:
             audio = [f"<|s_{a}|>" for a in audio]
             audio = "".join(audio)
 
-            file.write_text(json.dumps({"audio": audio, "text": text}), "utf-8")
+            file.write_text(
+                json.dumps({"audio": audio, "text": text}), encoding="utf-8"
+            )
 
-        data = json.loads(file.read_text("utf-8"))
+        data = json.loads(file.read_text(encoding="utf-8"))
         return name, {"audio": data.get("audio", ""), "text": data.get("text", "")}
 
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
@@ -151,8 +159,8 @@ class Model:
         self.gen_settings.top_k = query.top_k
         self.gen_settings.top_p = query.top_p
 
-        with Timer() as timer:
-            for chunk in utils.split_text(text, query.max_len):
+        with Timer() as outer_timer:
+            for line in utils.split_text(text, query.max_len):
                 with Timer() as inner_timer:
                     messages = [
                         {
@@ -160,7 +168,7 @@ class Model:
                             "content": (
                                 "Convert the text to speech:"
                                 "<|TEXT_UNDERSTANDING_START|>"
-                                f"{ref_text}{chunk}"
+                                f"{ref_text}{line}"
                                 "<|TEXT_UNDERSTANDING_END|>"
                             ),
                         },
@@ -199,7 +207,7 @@ class Model:
                             if result.get("eos") and output:
                                 if query.reuse:
                                     ref_audio = "".join(output)
-                                    ref_text = chunk
+                                    ref_text = line
 
                                 yield output
 
@@ -207,7 +215,7 @@ class Model:
 
             self.model.clear_queue()
 
-        timer(f"Finished with seed {query.seed}")
+        outer_timer(f"Finished with seed {query.seed}")
 
     @autocast
     def decode_audio(self, input: list[str], sample_rate: int, format: str) -> bytes:

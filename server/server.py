@@ -37,7 +37,7 @@ def get_settings() -> dict[str, Any]:
 @app.post("/generate")
 def generate_audio(query: Query) -> Response:
     response = model.generate_audio(query)
-    return Response(response, media_type="audio/wav")
+    return Response(response, media_type=f"audio/{query.format}")
 
 
 @app.post("/stream")
@@ -46,7 +46,7 @@ def stream_audio(query: Query) -> StreamingResponse:
         for response in model.stream_audio(query):
             yield response
 
-    return StreamingResponse(generator(), media_type="audio/ogg")
+    return StreamingResponse(generator(), media_type=f"audio/{query.format}")
 
 
 parser = ArgumentParser()
@@ -54,12 +54,10 @@ parser.add_argument("--host", default="127.0.0.1")
 parser.add_argument("--port", type=int, default=8020)
 parser.add_argument("-m", "--model", type=Path, required=True)
 parser.add_argument("-c", "--codec", type=Path, required=True)
-parser.add_argument("-a", "--audio", type=Path, default="")
+parser.add_argument("-a", "--audio", type=Path, default="audio")
 parser.add_argument("--cache-bits", type=int, choices=[4, 6, 8, 16], default=16)
 parser.add_argument("--device", default="cuda")
-parser.add_argument(
-    "--dtype", choices=["float16", "bfloat16", "float32"], default="float32"
-)
+parser.add_argument("--dtype", choices=["fp16", "bf16", "fp32"], default="fp32")
 parser.add_argument("--max-seq-len", type=int, default=2048)
 parser.add_argument("--sample-rate", type=int, default=16000)
 args = parser.parse_args()
