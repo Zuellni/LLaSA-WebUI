@@ -9,7 +9,7 @@ class Query(BaseModel):
     audio: Annotated[str, Field(strip_whitespace=True, to_lower=True)]
 
     format: Annotated[Literal["flac", "mp3", "ogg", "wav"], Field(default="wav")]
-    max_len: Annotated[int, Field(default=256, ge=1)]
+    max_len: Annotated[int, Field(default=200, ge=1)]
     sample_rate: Annotated[int, Field(default=16000)]
 
     repetition_penalty: Annotated[float, Field(default=1.0, ge=0.0)]

@@ -57,9 +57,22 @@ class Model:
         self.codec = self.load_codec(codec)
         self.audio = self.load_audio(audio)
 
+        self.pattern = re.compile(r"<\|s_\d+\|>")
+
         template = self.model.tokenizer.tokenizer_config_dict.get("chat_template", "")
         self.template = Template(template)
-        self.pattern = re.compile(r"<\|s_\d+\|>")
+
+        eos = self.model.tokenizer.single_id("<|SPEECH_GENERATION_END|>")
+        first = self.model.tokenizer.single_id("<|s_0|>")
+        last = self.model.tokenizer.single_id("<|s_65535|>")
+
+        self.stop_conditions = [eos]
+
+        self.gen_settings = ExLlamaV2Sampler.Settings()
+        self.gen_settings.allow_tokens(
+            tokenizer=self.model.tokenizer,
+            tokens=self.stop_conditions + list(range(first, last + 1)),
+        )
 
     def load_model(self, path: Path, cache_bits: int) -> ExLlamaV2DynamicGenerator:
         with Timer() as timer:
@@ -99,7 +112,7 @@ class Model:
             files = [f for f in path.glob("*.*") if f.suffix in suffixes]
             audio = dict([self.encode_audio(f) for f in files])
 
-        timer("Loaded audio")
+        timer("Cached audio")
         return audio
 
     @autocast
@@ -136,11 +149,10 @@ class Model:
         ref_text = f"{ref_text} " if ref_text else ""
         text = utils.clean_text(query.text)
 
-        gen_settings = ExLlamaV2Sampler.Settings()
-        gen_settings.temperature = query.temperature
-        gen_settings.token_repetition_penalty = query.repetition_penalty
-        gen_settings.top_k = query.top_k
-        gen_settings.top_p = query.top_p
+        self.gen_settings.temperature = query.temperature
+        self.gen_settings.token_repetition_penalty = query.repetition_penalty
+        self.gen_settings.top_k = query.top_k
+        self.gen_settings.top_p = query.top_p
 
         with Timer() as timer:
             for chunk in utils.split_text(text, query.max_len):
@@ -161,31 +173,30 @@ class Model:
                         },
                     ]
 
-                    template = self.template.render(messages=messages)[:-10]
-                    input_ids = self.model.tokenizer.encode(template, add_bos=True)
+                    input = self.template.render(messages=messages)[:-10]
+                    input_ids = self.model.tokenizer.encode(input, add_bos=True)
                     max_new_tokens = self.max_seq_len - input_ids.shape[-1]
-                    stop_conditions = ["<|SPEECH_GENERATION_END|>"]
 
                     job = ExLlamaV2DynamicJob(
                         input_ids=input_ids,
                         max_new_tokens=max_new_tokens,
-                        gen_settings=gen_settings,
+                        gen_settings=self.gen_settings,
                         seed=query.seed,
-                        stop_conditions=stop_conditions,
+                        stop_conditions=self.stop_conditions,
                     )
 
                     self.model.enqueue(job)
                     output = []
 
                     while self.model.num_remaining_jobs():
-                        for results in self.model.iterate():
-                            if results.get("stage") == "streaming":
-                                text = results.get("text")
+                        for result in self.model.iterate():
+                            if result.get("stage") == "streaming":
+                                text = result.get("text")
 
                                 if text:
                                     output.append(text)
 
-                            if results.get("eos") and output:
+                            if result.get("eos") and output:
                                 if query.reuse:
                                     ref_audio = "".join(output)
                                     ref_text = chunk
@@ -196,7 +207,7 @@ class Model:
 
             self.model.clear_queue()
 
-        timer(f"Generated with seed {query.seed}")
+        timer(f"Finished with seed {query.seed}")
 
     @autocast
     def decode_audio(self, input: list[str], sample_rate: int, format: str) -> bytes:

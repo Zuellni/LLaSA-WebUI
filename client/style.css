@@ -44,7 +44,6 @@ form {
     display: grid;
     grid-template-columns: 5rem 1fr 5rem 1fr;
     align-items: center;
-    min-width: 30rem;
     border-radius: 1rem;
     gap: 1rem;
     margin: 1rem;
@@ -93,15 +92,15 @@ input {
         }
     }
 
-    &[type=button] {
-        grid-column: span 2;
+    &[type=submit] {
+        grid-column: span 4;
         text-transform: uppercase;
+        cursor: pointer;
         background: var(--color);
         color: var(--main);
         transition: .5s;
 
         &:hover {
-            cursor: pointer;
             background: var(--hover);
             color: var(--color);
         }
@@ -115,14 +114,23 @@ select {
 }
 
 textarea {
-    resize: none;
+    width: 100%;
     min-width: 100%;
+    max-width: calc(100vw - 16rem);
     min-height: 3.5rem;
-    max-width: calc(100vw - 20rem);
-    max-height: calc(100vh - 40rem);
+    resize: horizontal;
 
     &::-webkit-resizer,
     &::-webkit-scrollbar {
         display: none;
+    }
+}
+
+audio {
+    grid-column: span 4;
+    width: 100%;
+
+    &::-webkit-media-controls-enclosure {
+        background: var(--main);
     }
 }

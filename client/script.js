@@ -1,6 +1,7 @@
 const url = "http://127.0.0.1:8020"
 const player = document.querySelector("audio")
 const form = document.querySelector("form")
+const button = form.querySelector("#generate")
 
 const text = form.querySelector("#text")
 const audio = form.querySelector("#audio")
@@ -11,15 +12,6 @@ const sampleRate = form.querySelector("#sampleRate")
 const temperature = form.querySelector("#temperature")
 const topK = form.querySelector("#topK")
 const topP = form.querySelector("#topP")
-
-const generate = form.querySelector("#generate")
-const stream = form.querySelector("#stream")
-
-const getFormData = () => {
-    const formData = new FormData(form)
-    const formObject = Object.fromEntries(formData.entries())
-    return JSON.stringify(formObject)
-}
 
 const getSettings = async () => {
     const response = await fetch(`${url}/settings`)
@@ -47,80 +39,35 @@ const getSettings = async () => {
     }
 }
 
-generate.addEventListener("click", async () => {
-    if (!player.paused) {
-        player.pause()
-        return
+form.addEventListener("submit", async (event) => {
+    event.preventDefault()
+    button.value = "Generating..."
+
+    const data = new FormData(form)
+    const obj = Object.fromEntries(data.entries())
+
+    try {
+        const response = await fetch(`${url}/generate`, {
+            method: "post",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(obj),
+        })
+
+        const blob = await response.blob()
+        player.src = URL.createObjectURL(blob)
+        player.title = `${audio.value}.${format.value}`
+        player.play()
+
+        button.value = "Generate"
+    } catch {
+        button.value = "Error"
     }
-
-    generate.value = "Generating..."
-
-    const response = await fetch(`${url}/generate`, {
-        method: "post",
-        headers: { "content-type": "application/json" },
-        body: getFormData(),
-    })
-
-    const data = await response.blob()
-    player.src = URL.createObjectURL(data)
-    player.play()
-
-    const link = document.createElement("a")
-    link.download = `${audio.value}.${format.value}`
-    link.href = player.src
-    document.body.append(link)
-    link.click()
-    link.remove()
-
-    generate.value = "Generate"
 })
 
 text.addEventListener("input", () => {
     text.style.height = ""
     text.style.height = `${text.scrollHeight}px`
-})
-
-stream.addEventListener("click", async () => {
-    if (!player.paused) {
-        player.pause()
-        return
-    }
-
-    stream.value = "Streaming..."
-
-    const response = await fetch(`${url}/stream`, {
-        method: "post",
-        headers: { "content-type": "application/json" },
-        body: getFormData(),
-    })
-
-    const reader = response.body.getReader()
-
-    while (true) {
-        const { done, value } = await reader.read()
-
-        if (value) {
-            const data = new Blob([value])
-
-            if (!player.paused && !player.ended) {
-                await new Promise((resolve) => {
-                    player.onended = resolve
-                })
-            }
-
-            await new Promise((resolve) => {
-                player.src = URL.createObjectURL(data)
-                player.onended = resolve
-                player.play()
-            })
-        }
-
-        if (done) {
-            break
-        }
-    }
-
-    stream.value = "Stream"
+    text.style.maxHeight = `${window.innerHeight - form.offsetHeight}px`
 })
 
 getSettings()
