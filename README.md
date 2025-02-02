@@ -24,14 +24,18 @@ git clone https://huggingface.co/annuvin/llasa-8b-6.0bpw-exl2    model # 6.0bpw
 git clone https://huggingface.co/annuvin/llasa-8b-8.0bpw-h8-exl2 model # 8.0bpw
 git clone https://huggingface.co/hkustaudio/llasa-8b             model # bf16
 ```
-### [X-Codec-2.0](https://huggingface.co/HKUSTAudio/xcodec2)
+### [X-Codec-2](https://huggingface.co/HKUSTAudio/xcodec2)
 ```sh
 git clone https://huggingface.co/annuvin/xcodec2-bf16            codec # bf16
 git clone https://huggingface.co/srinivasbilla/xcodec2           codec # fp32
 ```
 ## Usage
+### Server
 ```sh
 python server -m model -c codec -a audio
+```
+### Client
+```sh
 python -m http.server -b 127.0.0.1 8021 -d client
 start http://127.0.0.1:8021
 ```
