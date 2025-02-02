@@ -1,10 +1,12 @@
 import random
 from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Query(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     text: Annotated[str, Field(alias="input", min_length=1)]
     audio: Annotated[str, Field(alias="voice", strip_whitespace=True, to_lower=True)]
 
