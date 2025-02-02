@@ -27,7 +27,7 @@ git clone https://huggingface.co/hkustaudio/llasa-8b             model # bf16
 ### [X-Codec-2](https://huggingface.co/HKUSTAudio/xcodec2)
 ```sh
 git clone https://huggingface.co/annuvin/xcodec2-bf16            codec # bf16
-git clone https://huggingface.co/srinivasbilla/xcodec2           codec # fp32
+git clone https://huggingface.co/annuvin/xcodec2-fp32            codec # fp32
 ```
 ## Usage
 ### Server
