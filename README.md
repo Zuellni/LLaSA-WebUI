@@ -30,6 +30,11 @@ git clone https://huggingface.co/annuvin/xcodec2-bf16            codec # bf16
 git clone https://huggingface.co/srinivasbilla/xcodec2           codec # fp32
 ```
 ## Usage
+### Server
 ```sh
 python server -m model -c codec -a audio
+```
+### Client
+```sh
+python -m http.server -b 127.0.0.1 8021 -d client
 ```
