@@ -1,5 +1,4 @@
 import json
-import re
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Callable, Generator, Literal
@@ -57,8 +56,6 @@ class Model:
         self.codec = self.load_codec(codec)
         self.audio = self.load_audio(audio)
 
-        self.pattern = re.compile(r"<\|s_\d+\|>")
-
         template = self.model.tokenizer.tokenizer_config_dict.get("chat_template", "")
         self.template = Template(template)
 
@@ -88,7 +85,7 @@ class Model:
             }
 
             cache = caches[cache_bits](model)
-            model.load_autosplit(cache, progress=True)
+            model.load_autosplit(cache)
 
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
             generator = ExLlamaV2DynamicGenerator(model, cache, tokenizer)
@@ -176,6 +173,10 @@ class Model:
                     input = self.template.render(messages=messages)[:-10]
                     input_ids = self.model.tokenizer.encode(input, add_bos=True)
                     max_new_tokens = self.max_seq_len - input_ids.shape[-1]
+                    output = []
+
+                    if max_new_tokens <= 0:
+                        continue
 
                     job = ExLlamaV2DynamicJob(
                         input_ids=input_ids,
@@ -186,7 +187,6 @@ class Model:
                     )
 
                     self.model.enqueue(job)
-                    output = []
 
                     while self.model.num_remaining_jobs():
                         for result in self.model.iterate():
@@ -211,7 +211,7 @@ class Model:
 
     @autocast
     def decode_audio(self, input: list[str], sample_rate: int, format: str) -> bytes:
-        input = [int(i[4:-2]) for i in input if re.match(self.pattern, i)]
+        input = [int(i[4:-2]) for i in input]
         input = torch.tensor([[input]]).to(self.device)
 
         output = self.codec.decode_code(input)

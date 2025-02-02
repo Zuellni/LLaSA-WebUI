@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class Query(BaseModel):
-    text: Annotated[str, Field(min_length=1)]
-    audio: Annotated[str, Field(strip_whitespace=True, to_lower=True)]
+    text: Annotated[str, Field(alias="input", min_length=1)]
+    audio: Annotated[str, Field(alias="voice", strip_whitespace=True, to_lower=True)]
 
     format: Annotated[Literal["flac", "mp3", "ogg", "wav"], Field(default="wav")]
     max_len: Annotated[int, Field(default=200, ge=1)]
