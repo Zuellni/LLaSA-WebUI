@@ -19,25 +19,15 @@
     padding: 0;
 }
 
-body {
+html, body {
     display: grid;
     align-items: center;
     justify-items: center;
-    height: 100vh;
+    height: 100%;
     background:
         radial-gradient(ellipse at top,
-            var(--back) 100vh,
+            var(--back) 100%,
             var(--main));
-}
-
-h1 {
-    grid-column: span 4;
-    text-align: center;
-    font-size: 2rem;
-    border-radius: 1rem;
-    padding: 1rem;
-    background: var(--color);
-    color: var(--main);
 }
 
 form {
@@ -46,6 +36,7 @@ form {
     align-items: center;
     border-radius: 1rem;
     gap: 1rem;
+    margin: 1rem;
     padding: 1rem;
     background: var(--main);
     box-shadow: 1rem 1rem var(--shadow);
@@ -115,9 +106,7 @@ input {
 }
 
 select {
-    &#voice {
-        text-transform: capitalize;
-    }
+    text-transform: capitalize;
 }
 
 textarea {

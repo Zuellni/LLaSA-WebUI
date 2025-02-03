@@ -30,7 +30,7 @@ def get_settings() -> dict[str, Any]:
     }
 
     settings["audio"] = list(model.audio)
-    settings["format"] = list(get_args(Query.model_fields.get("format").annotation))
+    settings["formats"] = list(get_args(Query.model_fields.get("format").annotation))
     return settings
 
 

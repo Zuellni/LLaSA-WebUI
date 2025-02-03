@@ -36,13 +36,14 @@ connect.addEventListener("click", async () => {
             voice.append(option)
         }
 
-        for (const entry of data.format) {
+        for (const entry of data.formats) {
             const option = document.createElement("option")
             option.value = entry
             option.textContent = entry
             format.append(option)
         }
 
+        format.value = data.format
         connect.value = "Connected"
     } catch (error) {
         connect.value = "Error"
