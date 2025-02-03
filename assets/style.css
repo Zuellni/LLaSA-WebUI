@@ -83,8 +83,8 @@ input {
         }
     }
 
-    &[type=button],
     &[type=submit] {
+        grid-column: span 4;
         text-transform: uppercase;
         cursor: pointer;
         background: var(--color);
@@ -96,18 +96,12 @@ input {
             color: var(--color);
         }
     }
-
-    &[type=submit] {
-        grid-column: span 4;
-    }
-
-    &[type=text] {
-        grid-column: span 2;
-    }
 }
 
 select {
-    text-transform: capitalize;
+    &#voice {
+        text-transform: capitalize;
+    }
 }
 
 textarea {

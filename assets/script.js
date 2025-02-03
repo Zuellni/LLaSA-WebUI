@@ -12,7 +12,7 @@ form.addEventListener("submit", async (event) => {
     const obj = Object.fromEntries(data.entries())
 
     try {
-        const response = await fetch("/generate", {
+        const response = await fetch("generate", {
             method: "post",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(obj),
