@@ -131,9 +131,3 @@ audio {
         background: transparent;
     }
 }
-
-@media screen and (max-height: 768px) {
-    * {
-        font-size: 0.9rem;
-    }
-}

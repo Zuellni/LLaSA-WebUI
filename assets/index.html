@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLaSA</title>
+    <link href="/icon.png" rel="icon">
+    <link href="/style.css" rel="stylesheet">
+    <script defer src="/script.js"></script>
+</head>
+
+<body>
+    <form>
+        <fieldset>
+            <label for="input">Input</label>
+            <textarea id="input" name="input"></textarea>
+        </fieldset>
+
+        <hr>
+
+        <label for="voice">Voice</label>
+        <select id="voice" name="voice">
+            <option value="">none</option>
+            {% for voice in settings.voices %}
+            <option value="{{ voice }}">{{ voice }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="maxLen">Chunk</label>
+        <input id="maxLen" name="max_len" type="number" value="{{ settings.max_len }}">
+
+        <label for="format">Format</label>
+        <select id="format" name="format">
+            {% for format in settings.formats %}
+            <option value="{{ format }}" {% if format==settings.format %}selected{% endif %}>{{ format }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="sampleRate">Rate</label>
+        <input id="sampleRate" name="sample_rate" type="number" value="{{ settings.sample_rate }}">
+
+        <label for="reuse">Reuse</label>
+        <select id="reuse" name="reuse">
+            <option value="false" {% if format==settings.reuse %}selected{% endif %}>no</option>
+            <option value="true" {% if format==settings.reuse %}selected{% endif %}>yes</option>
+        </select>
+
+        <label for="seed">Seed</label>
+        <input id="seed" name="seed" type="number" value="{{ settings.seed }}">
+
+        <label for="repetitionPenalty">Penalty</label>
+        <input id="repetitionPenalty" name="repetition_penalty" step="0.001" type="number"
+            value="{{ settings.repetition_penalty }}">
+
+        <label for="temperature">Temp</label>
+        <input id="temperature" name="temperature" step="0.001" type="number" value="{{ settings.temperature }}">
+
+        <label for="topK">Top K</label>
+        <input id="topK" name="top_k" type="number" value="{{ settings.top_k }}">
+
+        <label for="topP">Top P</label>
+        <input id="topP" name="top_p" step="0.001" type="number" value="{{ settings.top_p }}">
+
+        <hr>
+
+        <input id="generate" type="submit" value="Generate">
+        <audio controls></audio>
+    </form>
+</body>
+
+</html>
