@@ -1,15 +1,16 @@
 const form = document.querySelector("form")
-const address = form.querySelector("#address")
+const server = form.querySelector("#server")
 const connect = form.querySelector("#connect")
 
 const input = form.querySelector("#input")
 const voice = form.querySelector("#voice")
 
-const format = form.querySelector("#format")
 const maxLen = form.querySelector("#maxLen")
-const repetitionPenalty = form.querySelector("#repetitionPenalty")
-const sampleRate = form.querySelector("#sampleRate")
-const temperature = form.querySelector("#temperature")
+const format = form.querySelector("#format")
+const rate = form.querySelector("#rate")
+const reuse = form.querySelector("#reuse")
+const penalty = form.querySelector("#penalty")
+const temp = form.querySelector("#temp")
 const topK = form.querySelector("#topK")
 const topP = form.querySelector("#topP")
 
@@ -19,15 +20,9 @@ const audio = form.querySelector("audio")
 connect.addEventListener("click", async () => {
     try {
         connect.value = "Connecting..."
-        const response = await fetch(`${address.value}/settings`)
-        const data = await response.json()
 
-        maxLen.value = parseInt(data.max_len)
-        repetitionPenalty.value = parseFloat(data.repetition_penalty)
-        sampleRate.value = parseInt(data.sample_rate)
-        temperature.value = parseFloat(data.temperature)
-        topK.value = parseInt(data.top_k)
-        topP.value = parseFloat(data.top_p)
+        const response = await fetch(`${server.value}/settings`)
+        const data = await response.json()
 
         for (const entry of data.audio) {
             const option = document.createElement("option")
@@ -44,6 +39,16 @@ connect.addEventListener("click", async () => {
         }
 
         format.value = data.format
+        reuse.value = data.reuse
+
+        penalty.value = parseFloat(data.repetition_penalty)
+        temp.value = parseFloat(data.temperature)
+        topP.value = parseFloat(data.top_p)
+
+        maxLen.value = parseInt(data.max_len)
+        rate.value = parseInt(data.sample_rate)
+        topK.value = parseInt(data.top_k)
+
         connect.value = "Connected"
     } catch (error) {
         connect.value = "Error"
@@ -52,14 +57,14 @@ connect.addEventListener("click", async () => {
 })
 
 form.addEventListener("submit", async (event) => {
-    event.preventDefault()
     generate.value = "Generating..."
+    event.preventDefault()
 
     const data = new FormData(form)
     const obj = Object.fromEntries(data.entries())
 
     try {
-        const response = await fetch(`${address.value}/generate`, {
+        const response = await fetch(`${server.value}/generate`, {
             method: "post",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(obj),

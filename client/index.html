@@ -1,8 +1,9 @@
 <!doctype html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLaSA</title>
     <link href="icon.png" rel="icon">
     <link href="style.css" rel="stylesheet">
@@ -11,8 +12,8 @@
 
 <body>
     <form>
-        <label for="address">Server</label>
-        <input id="address" type="text" value="http://127.0.0.1:8020">
+        <label for="server">Server</label>
+        <input id="server" type="text" value="http://127.0.0.1:8020">
         <input id="connect" type="button" value="Connect">
 
         <hr>
@@ -33,8 +34,8 @@
         <label for="format">Format</label>
         <select id="format" name="format" required></select>
 
-        <label for="sampleRate">Rate</label>
-        <input id="sampleRate" name="sample_rate" required type="number">
+        <label for="rate">Rate</label>
+        <input id="rate" name="sample_rate" required type="number">
 
         <label for="reuse">Reuse</label>
         <select id="reuse" name="reuse">
@@ -45,11 +46,11 @@
         <label for="seed">Seed</label>
         <input id="seed" name="seed" type="number">
 
-        <label for="repetitionPenalty">Penalty</label>
-        <input id="repetitionPenalty" name="repetition_penalty" required step="0.001" type="number">
+        <label for="penalty">Penalty</label>
+        <input id="penalty" name="repetition_penalty" required step="0.001" type="number">
 
-        <label for="temperature">Temp</label>
-        <input id="temperature" name="temperature" required step="0.001" type="number">
+        <label for="temp">Temp</label>
+        <input id="temp" name="temperature" required step="0.001" type="number">
 
         <label for="topK">Top K</label>
         <input id="topK" name="top_k" required type="number">

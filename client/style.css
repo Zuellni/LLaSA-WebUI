@@ -9,7 +9,7 @@
 }
 
 * {
-    font: bold 1rem "Noto Sans";
+    font: bold 1rem "Noto Sans", sans-serif;
     appearance: none;
     border: none;
     box-sizing: border-box;
@@ -128,6 +128,12 @@ audio {
     width: 100%;
 
     &::-webkit-media-controls-enclosure {
-        background: var(--main);
+        background: transparent;
+    }
+}
+
+@media screen and (max-height: 768px) {
+    * {
+        font-size: 0.9rem;
     }
 }
