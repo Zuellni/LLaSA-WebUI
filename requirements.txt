@@ -1,8 +1,6 @@
 exllamav2
 fastapi-slim
-jinja2
-pydantic
-rich
+flash-attn
 spacy
 torch
 torchaudio

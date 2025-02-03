@@ -9,6 +9,7 @@ from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic_core import PydanticUndefined
+from starlette.templating import _TemplateResponse
 
 from model import Model
 from schema import Query
@@ -51,15 +52,15 @@ app.add_middleware(
 
 
 @app.get("/")
-def index(request: Request):
+async def index(request: Request) -> _TemplateResponse:
     return template.TemplateResponse(
         name="index.html",
-        context={"request": request, "settings": settings()},
+        context={"request": request, "settings": await settings()},
     )
 
 
 @app.get("/settings")
-def settings() -> dict[str, Any]:
+async def settings() -> dict[str, Any]:
     settings = {
         k: v.default
         for k, v in Query.model_fields.items()
