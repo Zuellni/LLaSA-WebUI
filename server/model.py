@@ -26,19 +26,6 @@ import utils
 from schema import Query
 from utils import Timer
 
-caches = {
-    4: lambda model: ExLlamaV2Cache_Q4(model, lazy=True),
-    6: lambda model: ExLlamaV2Cache_Q6(model, lazy=True),
-    8: lambda model: ExLlamaV2Cache_Q8(model, lazy=True),
-    16: lambda model: ExLlamaV2Cache(model, lazy=True),
-}
-
-dtypes = {
-    "fp16": torch.float16,
-    "bf16": torch.bfloat16,
-    "fp32": torch.float32,
-}
-
 
 class Model:
     @staticmethod
@@ -49,11 +36,31 @@ class Model:
 
         return wrapper
 
+    def get_cache(self, cache_bits: int) -> ExLlamaV2Cache:
+        match (cache_bits):
+            case 4:
+                return ExLlamaV2Cache_Q4
+            case 6:
+                return ExLlamaV2Cache_Q6
+            case 8:
+                return ExLlamaV2Cache_Q8
+            case _:
+                return ExLlamaV2Cache
+
+    def get_dtype(self, dtype: str) -> torch.dtype:
+        match (dtype):
+            case "fp16":
+                return torch.float16
+            case "bf16":
+                return torch.bfloat16
+            case _:
+                return torch.float32
+
     def __init__(
         self,
-        model: Path,
-        codec: Path,
-        audio: Path,
+        model_dir: Path,
+        codec_dir: Path,
+        voice_dir: Path,
         cache_bits: int = 16,
         device: str = "cuda",
         dtype: str = "fp32",
@@ -61,13 +68,13 @@ class Model:
         sample_rate: int = 16000,
     ) -> None:
         self.device = device
-        self.dtype = dtypes.get(dtype, "fp32")
+        self.dtype = self.get_dtype(dtype)
         self.max_seq_len = max_seq_len
         self.sample_rate = sample_rate
 
-        self.model = self.load_model(model, cache_bits)
-        self.codec = self.load_codec(codec)
-        self.audio = self.load_audio(audio)
+        self.model = self.load_model(model_dir, cache_bits)
+        self.codec = self.load_codec(codec_dir)
+        self.voices = self.load_voices(voice_dir)
 
         template = self.model.tokenizer.tokenizer_config_dict.get("chat_template", "")
         self.template = Template(template)
@@ -90,7 +97,7 @@ class Model:
             config.max_seq_len = self.max_seq_len
 
             model = ExLlamaV2(config, lazy_load=True)
-            cache = caches.get(cache_bits, 16)(model)
+            cache = self.get_cache(cache_bits)(model, lazy=True)
             model.load_autosplit(cache)
 
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
@@ -108,18 +115,18 @@ class Model:
         timer("Loaded codec")
         return codec
 
-    def load_audio(
+    def load_voices(
         self, path: Path, suffixes: list[str] = [".flac", ".mp3", ".ogg", ".wav"]
     ) -> dict[str, dict[str, str]]:
         with Timer() as timer:
             files = [f for f in path.glob("*.*") if f.suffix in suffixes]
-            audio = dict([self.encode_audio(f) for f in files])
+            voices = dict([self.encode(f) for f in files])
 
-        timer("Cached audio")
-        return audio
+        timer("Cached voices")
+        return voices
 
     @autocast
-    def encode_audio(
+    def encode(
         self, path: Path, cache_dir: str = ".cache"
     ) -> tuple[str, dict[str, str]] | None:
         name = path.stem.lower()
@@ -133,26 +140,26 @@ class Model:
                 return
 
             text = utils.process_text(text)
-            audio, sample_rate = torchaudio.load(path)
-            audio = utils.process_audio(audio, sample_rate, self.sample_rate)
-            audio = self.codec.encode_code(audio, self.sample_rate)
-            audio = audio[0, 0, :]
-            audio = [f"<|s_{a}|>" for a in audio]
-            audio = "".join(audio)
+            speech, sample_rate = torchaudio.load(path)
+            speech = utils.process_audio(speech, sample_rate, self.sample_rate)
+            speech = self.codec.encode_code(speech, self.sample_rate)
+            speech = speech[0, 0, :]
+            speech = [f"<|s_{s}|>" for s in speech]
+            speech = "".join(speech)
 
             file.write_text(
-                json.dumps({"audio": audio, "text": text}), encoding="utf-8"
+                json.dumps({"speech": speech, "text": text}), encoding="utf-8"
             )
 
         data = json.loads(file.read_text(encoding="utf-8"))
-        return name, {"audio": data.get("audio", ""), "text": data.get("text", "")}
+        return name, {"speech": data["speech"], "text": data["text"]}
 
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
-        audio = self.audio.get(query.audio, {})
-        ref_audio = audio.get("audio", "")
-        ref_text = audio.get("text", "")
+        voice = self.voices.get(query.voice, {})
+        ref_speech = voice.get("speech", "")
+        ref_text = voice.get("text", "")
         ref_text = f"{ref_text} " if ref_text else ""
-        text = utils.clean_text(query.text)
+        text = utils.clean_text(query.input)
 
         self.gen_settings.temperature = query.temperature
         self.gen_settings.token_repetition_penalty = query.repetition_penalty
@@ -174,7 +181,7 @@ class Model:
                         },
                         {
                             "role": "assistant",
-                            "content": f"<|SPEECH_GENERATION_START|>{ref_audio}",
+                            "content": f"<|SPEECH_GENERATION_START|>{ref_speech}",
                         },
                     ]
 
@@ -189,6 +196,7 @@ class Model:
                     job = ExLlamaV2DynamicJob(
                         input_ids=input_ids,
                         max_new_tokens=max_new_tokens,
+                        min_new_tokens=2,
                         gen_settings=self.gen_settings,
                         seed=query.seed,
                         stop_conditions=self.stop_conditions,
@@ -206,7 +214,7 @@ class Model:
 
                             if result.get("eos") and output:
                                 if query.reuse:
-                                    ref_audio = "".join(output)
+                                    ref_speech = "".join(output)
                                     ref_text = line
 
                                 yield output
@@ -218,27 +226,27 @@ class Model:
         outer_timer(f"Finished with seed {query.seed}")
 
     @autocast
-    def decode_audio(self, input: list[str], sample_rate: int, format: str) -> bytes:
+    def decode(self, input: list[str], sample_rate: int, format: str) -> bytes:
         input = [int(i[4:-2]) for i in input]
         input = torch.tensor([[input]]).to(self.device)
 
         output = self.codec.decode_code(input)
-        output = output[0, 0, :].unsqueeze(0).cpu()
+        output = output[0, 0, :].unsqueeze(0)
         output = utils.process_audio(output, self.sample_rate, sample_rate)
 
         buffer = BytesIO()
-        torchaudio.save(buffer, output, sample_rate, format=format)
+        torchaudio.save(buffer, output.cpu(), sample_rate, format=format)
         return buffer.getvalue()
 
-    def generate_audio(self, query: Query) -> bytes | None:
+    def generate(self, query: Query) -> bytes | None:
         outputs = []
 
         for output in self(query):
             outputs.extend(output)
 
         if outputs:
-            return self.decode_audio(outputs, query.sample_rate, query.format)
+            return self.decode(outputs, query.sample_rate, query.format)
 
-    def stream_audio(self, query: Query) -> Generator[bytes, None, None]:
+    def stream(self, query: Query) -> Generator[bytes, None, None]:
         for output in self(query):
-            yield self.decode_audio(output, query.sample_rate, query.format)
+            yield self.decode(output, query.sample_rate, query.format)

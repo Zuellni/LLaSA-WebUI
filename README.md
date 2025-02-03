@@ -38,7 +38,7 @@ git clone https://huggingface.co/annuvin/xcodec2-fp32            codec # fp32
 ## Usage
 Server:
 ```sh
-python server -m model -c codec -a audio
+python server -m model -c codec -v voices
 ```
 
 Client:

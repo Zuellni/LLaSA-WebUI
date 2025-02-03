@@ -24,39 +24,34 @@
         </fieldset>
 
         <label for="voice">Voice</label>
-        <select id="voice" name="voice">
-            <option value="">none</option>
-        </select>
+        <select id="voice" name="voice"></select>
 
         <label for="maxLen">Chunk</label>
-        <input id="maxLen" name="max_len" required type="number">
+        <input id="maxLen" name="max_len" type="number">
 
         <label for="format">Format</label>
-        <select id="format" name="format" required></select>
+        <select id="format" name="format"></select>
 
         <label for="rate">Rate</label>
-        <input id="rate" name="sample_rate" required type="number">
+        <input id="rate" name="sample_rate" type="number">
 
         <label for="reuse">Reuse</label>
-        <select id="reuse" name="reuse">
-            <option value="false">false</option>
-            <option value="true">true</option>
-        </select>
+        <select id="reuse" name="reuse"></select>
 
         <label for="seed">Seed</label>
         <input id="seed" name="seed" type="number">
 
         <label for="penalty">Penalty</label>
-        <input id="penalty" name="repetition_penalty" required step="0.001" type="number">
+        <input id="penalty" name="repetition_penalty" step="0.001" type="number">
 
         <label for="temp">Temp</label>
-        <input id="temp" name="temperature" required step="0.001" type="number">
+        <input id="temp" name="temperature" step="0.001" type="number">
 
         <label for="topK">Top K</label>
-        <input id="topK" name="top_k" required type="number">
+        <input id="topK" name="top_k" type="number">
 
         <label for="topP">Top P</label>
-        <input id="topP" name="top_p" required step="0.001" type="number">
+        <input id="topP" name="top_p" step="0.001" type="number">
 
         <hr>
 

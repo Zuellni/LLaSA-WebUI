@@ -2,7 +2,6 @@ exllamav2
 fastapi-slim
 jinja2
 pydantic
-pydantic-core
 rich
 spacy
 torch

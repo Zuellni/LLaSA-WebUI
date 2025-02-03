@@ -22,28 +22,28 @@ app.add_middleware(
 
 
 @app.get("/settings")
-def get_settings() -> dict[str, Any]:
+def settings() -> dict[str, Any]:
     settings = {
         k: v.default
         for k, v in Query.model_fields.items()
         if v.default is not PydanticUndefined
     }
 
-    settings["audio"] = list(model.audio)
-    settings["formats"] = list(get_args(Query.model_fields.get("format").annotation))
+    settings["formats"] = list(get_args(Query.model_fields["format"].annotation))
+    settings["voices"] = list(model.voices)
     return settings
 
 
 @app.post("/generate")
-def generate_audio(query: Query) -> Response:
-    response = model.generate_audio(query)
+def generate(query: Query) -> Response:
+    response = model.generate(query)
     return Response(response, media_type=f"audio/{query.format}")
 
 
 @app.post("/stream")
-def stream_audio(query: Query) -> StreamingResponse:
+def stream(query: Query) -> StreamingResponse:
     def generator() -> Generator[bytes, None, None]:
-        for response in model.stream_audio(query):
+        for response in model.stream(query):
             yield response
 
     return StreamingResponse(generator(), media_type=f"audio/{query.format}")
@@ -52,9 +52,9 @@ def stream_audio(query: Query) -> StreamingResponse:
 parser = ArgumentParser()
 parser.add_argument("--host", default="127.0.0.1")
 parser.add_argument("--port", type=int, default=8020)
-parser.add_argument("-m", "--model", type=Path, required=True)
-parser.add_argument("-c", "--codec", type=Path, required=True)
-parser.add_argument("-a", "--audio", type=Path, default="audio")
+parser.add_argument("-m", "--model_dir", type=Path, required=True)
+parser.add_argument("-c", "--codec_dir", type=Path, required=True)
+parser.add_argument("-v", "--voice_dir", type=Path, default="voices")
 parser.add_argument("--cache-bits", type=int, choices=[4, 6, 8, 16], default=16)
 parser.add_argument("--device", default="cuda")
 parser.add_argument("--dtype", choices=["fp16", "bf16", "fp32"], default="fp32")
@@ -63,9 +63,9 @@ parser.add_argument("--sample-rate", type=int, default=16000)
 args = parser.parse_args()
 
 model = Model(
-    model=args.model,
-    codec=args.codec,
-    audio=args.audio,
+    model_dir=args.model_dir,
+    codec_dir=args.codec_dir,
+    voice_dir=args.voice_dir,
     cache_bits=args.cache_bits,
     device=args.device,
     dtype=args.dtype,
