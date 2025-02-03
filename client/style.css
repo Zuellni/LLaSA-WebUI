@@ -112,6 +112,7 @@ select {
 textarea {
     width: 100%;
     min-width: 100%;
+    max-width: calc(100vw - 8.5em);
     min-height: 3.5rem;
     resize: horizontal;
 
