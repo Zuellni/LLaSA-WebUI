@@ -19,7 +19,8 @@
     padding: 0;
 }
 
-html, body {
+html,
+body {
     display: grid;
     align-items: center;
     justify-items: center;
