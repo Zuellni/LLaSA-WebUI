@@ -94,4 +94,4 @@ def stream(query: Query) -> StreamingResponse:
 
 
 app.mount("/", StaticFiles(directory=directory))
-uvicorn.run(app, host=args.host, port=args.port)
+uvicorn.run(app, host=args.host, port=args.port, access_log=False)

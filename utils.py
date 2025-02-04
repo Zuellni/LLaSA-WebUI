@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Self
 
 import spacy
 import torch
@@ -9,14 +10,42 @@ from exllamav2 import (
     ExLlamaV2Cache_Q6,
     ExLlamaV2Cache_Q8,
 )
-from rich import print
+from rich.progress import (
+    BarColumn,
+    Progress as ProgressBar,
+    TextColumn,
+    TimeElapsedColumn,
+    TaskProgressColumn,
+)
 from torchaudio import functional as F
 
 nlp = spacy.load("en_core_web_sm")
 
 
-def info(text: str) -> None:
-    print(f"[green]INFO[/green]:{' ' * 5}{text}")
+class Progress:
+    def __init__(self, description: str, total: float = 1.0) -> None:
+        self.description = description
+        self.total = total
+        self.task = None
+
+        self.progress = ProgressBar(
+            TextColumn("{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+        )
+
+    def __enter__(self) -> Self:
+        self.progress.start()
+        self.task = self.progress.add_task(self.description, total=self.total)
+        return self
+
+    def advance(self, *args, advance: float = 1.0) -> None:
+        self.progress.advance(self.task, advance)
+
+    def __exit__(self, *args) -> None:
+        self.progress.update(self.task, completed=self.total)
+        self.progress.stop()
 
 
 def get_cache(cache: str) -> type[ExLlamaV2CacheBase]:

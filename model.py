@@ -1,11 +1,11 @@
 import json
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Generator, get_args
 
 import torch
 import torchaudio
-from exllamav2 import ExLlamaV2, ExLlamaV2Config, ExLlamaV2Tokenizer, Timer
+from exllamav2 import ExLlamaV2, ExLlamaV2Config, ExLlamaV2Tokenizer
 from exllamav2.generator import (
     ExLlamaV2DynamicGenerator,
     ExLlamaV2DynamicJob,
@@ -16,6 +16,7 @@ from xcodec2.modeling_xcodec2 import XCodec2Model
 
 import utils
 from schema import Query
+from utils import Progress
 
 
 class Model:
@@ -39,8 +40,6 @@ class Model:
         max_seq_len: int = 2048,
         sample_rate: int = 16000,
     ) -> None:
-        utils.info("Loading.")
-
         self.batch = batch
         self.device = device
         self.dtype = utils.get_dtype(dtype)
@@ -67,43 +66,47 @@ class Model:
         )
 
     def load_model(self, path: Path, cache: str) -> ExLlamaV2DynamicGenerator:
-        with Timer() as timer:
-            config = ExLlamaV2Config(str(path))
-            config.max_seq_len = self.max_seq_len
+        config = ExLlamaV2Config(str(path))
+        config.max_seq_len = self.max_seq_len
 
-            model = ExLlamaV2(config, lazy_load=True)
-            cache = utils.get_cache(cache)(model, lazy=True)
-            model.load_autosplit(cache)
+        model = ExLlamaV2(config, lazy_load=True)
+        cache = utils.get_cache(cache)(model, lazy=True)
 
+        with Progress("Loading model", len(model.modules) + 1) as p:
+            model.load_autosplit(cache, callback=p.advance)
+
+        with Progress("Loading tokenizer"):
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
-            generator = ExLlamaV2DynamicGenerator(model, cache, tokenizer)
-            generator.warmup()
 
-        utils.info(f"Loaded model in {timer.interval:.2f} seconds.")
-        return generator
+        return ExLlamaV2DynamicGenerator(model, cache, tokenizer)
 
     def load_codec(self, path: Path) -> XCodec2Model:
-        with Timer() as timer:
+        with Progress("Loading codec"):
             codec = XCodec2Model.from_pretrained(path)
-            codec = codec.eval().to(self.device, self.dtype)
+            return codec.eval().to(self.device, self.dtype)
 
-        utils.info(f"Loaded codec in {timer.interval:.2f} seconds.")
-        return codec
+    def load_voices(self, path: Path) -> dict[str, dict[str, Any]]:
+        suffixes = [f".{s}" for s in get_args(Query.model_fields["format"].annotation)]
+        files = [f for f in path.glob("*.*") if f.suffix in suffixes]
 
-    def load_voices(
-        self, path: Path, suffixes: list[str] = [".flac", ".mp3", ".ogg", ".wav"]
-    ) -> dict[str, dict[str, str]]:
-        with Timer() as timer:
-            files = [f for f in path.glob("*.*") if f.suffix in suffixes]
-            voices = dict([self.encode(f) for f in files])
+        with Progress("Loading voices", len(files)) as p:
+            voices = {}
 
-        utils.info(f"Loaded {len(files)} voices in {timer.interval:.2f} seconds.")
-        return voices
+            for file in files:
+                result = self.encode(file)
+
+                if result:
+                    name, voice = result
+                    voices[name] = voice
+
+                p.advance()
+
+            return voices
 
     @autocast
     def encode(
         self, path: Path, cache_dir: str = ".cache"
-    ) -> tuple[str, dict[str, str]] | None:
+    ) -> tuple[str, dict[str, Any]] | None:
         name = path.stem.lower()
         file = path.parent / cache_dir / f"{name}.json"
         file.parent.mkdir(parents=True, exist_ok=True)
@@ -140,23 +143,23 @@ class Model:
         torchaudio.save(buffer, output.cpu(), sample_rate, format=format)
         return buffer.getvalue()
 
-    def sample(self) -> Generator[tuple[list[str], int, float], None, None]:
-        output = []
+    def generator(self, total: int) -> Generator[list[str], None, None]:
+        with Progress(f"Generating", total) as p:
+            output = []
 
-        while self.model.num_remaining_jobs():
-            for result in self.model.iterate():
-                text = result.get("text")
+            while self.model.num_remaining_jobs():
+                for result in self.model.iterate():
+                    text = result.get("text")
+                    p.advance()
 
-                if text:
-                    output.append(text)
+                    if text:
+                        output.append(text)
 
-                if result.get("eos"):
-                    yield output, result.get("new_tokens"), result.get("time_generate")
-                    output = []
+                    if result.get("eos"):
+                        yield output
+                        output = []
 
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
-        utils.info(f"Started generation with seed {query.seed}.")
-
         voice = self.voices.get(query.voice, {})
         audio = voice.get("audio", [])
         audio = "".join([f"<|s_{a}|>" for a in audio])
@@ -164,6 +167,7 @@ class Model:
         transcript = voice.get("text", "")
         transcript += " " if transcript else ""
         text = utils.clean_text(query.input)
+        total = 0
 
         self.gen_settings.temperature = query.temperature
         self.gen_settings.token_repetition_penalty = query.repetition_penalty
@@ -190,6 +194,7 @@ class Model:
             input = self.template.render(messages=messages)[:-10]
             input_ids = self.model.tokenizer.encode(input, add_bos=True)
             max_new_tokens = self.max_seq_len - input_ids.shape[-1]
+            total += max_new_tokens
 
             if max_new_tokens <= 0:
                 continue
@@ -208,8 +213,7 @@ class Model:
             if self.batch:
                 continue
 
-            output, tokens, time = next(self.sample())
-            utils.info(f"Generated {tokens} tokens in {time:.2f} seconds.")
+            output = next(self.generator(max_new_tokens))
 
             if not output:
                 continue
@@ -223,8 +227,7 @@ class Model:
         if not self.batch:
             return
 
-        for output, tokens, time in self.sample():
-            utils.info(f"Generated {tokens} tokens in {time:.2f} seconds.")
+        for output in self.generator(total):
             yield output
 
     def generate(self, query: Query) -> bytes | None:
