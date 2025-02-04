@@ -24,7 +24,6 @@ parser.add_argument("--port", type=int, default=8020)
 parser.add_argument("-m", "--model-dir", type=Path, required=True)
 parser.add_argument("-c", "--codec-dir", type=Path, required=True)
 parser.add_argument("-v", "--voice-dir", type=Path, default="voices")
-parser.add_argument("--batch", action="store_true")
 parser.add_argument("--cache", choices=["q4", "q6", "q8", "fp16"], default="fp16")
 parser.add_argument("--device", default="cuda")
 parser.add_argument("--dtype", choices=["fp16", "bf16", "fp32"], default="fp32")
@@ -36,7 +35,6 @@ model = Model(
     model_dir=args.model_dir,
     codec_dir=args.codec_dir,
     voice_dir=args.voice_dir,
-    batch=args.batch,
     cache=args.cache,
     device=args.device,
     dtype=args.dtype,
@@ -74,7 +72,6 @@ def settings() -> dict[str, Any]:
         if v.default is not PydanticUndefined
     }
 
-    settings["batch"] = args.batch
     settings["formats"] = list(get_args(Query.model_fields["format"].annotation))
     settings["voices"] = list(model.voices)
     return settings

@@ -43,9 +43,7 @@
         <label for="reuse">Reuse</label>
         <select id="reuse" name="reuse">
             <option value="false" {% if not settings.reuse %}selected{% endif %}>no</option>
-            {% if not settings.batch %}
             <option value="true" {% if settings.reuse %}selected{% endif %}>yes</option>
-            {% endif %}
         </select>
 
         <label for="seed">Seed</label>

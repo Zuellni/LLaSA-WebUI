@@ -33,14 +33,12 @@ class Model:
         model_dir: Path,
         codec_dir: Path,
         voice_dir: Path,
-        batch: bool = False,
         cache: str = "fp16",
         device: str = "cuda",
         dtype: str = "fp32",
         max_seq_len: int = 2048,
         sample_rate: int = 16000,
     ) -> None:
-        self.batch = batch
         self.device = device
         self.dtype = utils.get_dtype(dtype)
         self.max_seq_len = max_seq_len
@@ -68,12 +66,11 @@ class Model:
     def load_model(self, path: Path, cache: str) -> ExLlamaV2DynamicGenerator:
         config = ExLlamaV2Config(str(path))
         config.max_seq_len = self.max_seq_len
-
         model = ExLlamaV2(config, lazy_load=True)
         cache = utils.get_cache(cache)(model, lazy=True)
 
-        with Progress("Loading model", len(model.modules) + 1) as p:
-            model.load_autosplit(cache, callback=p.advance)
+        with Progress("Loading model", len(model.modules) + 1) as progress:
+            model.load_autosplit(cache, callback=progress.advance)
 
         with Progress("Loading tokenizer"):
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
@@ -89,17 +86,16 @@ class Model:
         suffixes = [f".{s}" for s in get_args(Query.model_fields["format"].annotation)]
         files = [f for f in path.glob("*.*") if f.suffix in suffixes]
 
-        with Progress("Loading voices", len(files)) as p:
+        with Progress("Loading voices", len(files)) as progress:
             voices = {}
 
             for file in files:
                 result = self.encode(file)
+                progress.advance()
 
                 if result:
                     name, voice = result
                     voices[name] = voice
-
-                p.advance()
 
             return voices
 
@@ -143,26 +139,12 @@ class Model:
         torchaudio.save(buffer, output.cpu(), sample_rate, format=format)
         return buffer.getvalue()
 
-    def generator(
-        self, progress: Progress | None = None
-    ) -> Generator[list[str], None, None]:
-        output = []
-
-        while self.model.num_remaining_jobs():
-            for result in self.model.iterate():
-                text = result.get("text")
-
-                if text:
-                    output.append(text)
-
-                if result.get("eos"):
-                    yield output
-                    output = []
-
-                if progress:
-                    progress.advance()
-
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
+        self.gen_settings.temperature = query.temperature
+        self.gen_settings.token_repetition_penalty = query.repetition_penalty
+        self.gen_settings.top_k = query.top_k
+        self.gen_settings.top_p = query.top_p
+
         voice = self.voices.get(query.voice, {})
         audio = voice.get("audio", [])
         audio = "".join([f"<|s_{a}|>" for a in audio])
@@ -170,24 +152,19 @@ class Model:
         transcript = voice.get("text", "")
         transcript += " " if transcript else ""
 
-        self.gen_settings.temperature = query.temperature
-        self.gen_settings.token_repetition_penalty = query.repetition_penalty
-        self.gen_settings.top_k = query.top_k
-        self.gen_settings.top_p = query.top_p
-
         text = utils.clean_text(query.input)
-        lines = utils.split_text(text, query.max_len)
-        lines_len = len(lines)
-        total_tokens = 0
+        chunks = utils.split_text(text, query.max_len)
+        count = len(chunks)
+        digits = len(str(count))
 
-        for i, line in enumerate(lines):
+        for index, chunk in enumerate(chunks):
             messages = [
                 {
                     "role": "user",
                     "content": (
                         "Convert the text to speech:"
                         "<|TEXT_UNDERSTANDING_START|>"
-                        f"{transcript}{line}"
+                        f"{transcript}{chunk}"
                         "<|TEXT_UNDERSTANDING_END|>"
                     ),
                 },
@@ -200,7 +177,6 @@ class Model:
             input = self.template.render(messages=messages)[:-10]
             input_ids = self.model.tokenizer.encode(input, add_bos=True)
             max_new_tokens = self.max_seq_len - input_ids.shape[-1]
-            total_tokens += max_new_tokens
 
             if max_new_tokens <= 0:
                 continue
@@ -215,28 +191,27 @@ class Model:
             )
 
             self.model.enqueue(job)
+            output = []
 
-            if self.batch:
-                continue
+            with Progress(
+                f"Generating chunk {index + 1:0{digits}}/{count}", max_new_tokens
+            ) as progress:
+                while self.model.num_remaining_jobs():
+                    for result in self.model.iterate():
+                        text = result.get("text")
+                        progress.advance()
 
-            with Progress(f"Generating {i + 1}/{lines_len}", max_new_tokens) as p:
-                output = next(self.generator(p))
+                        if text:
+                            output.append(text)
 
             if not output:
                 continue
 
             if query.reuse:
                 audio = "".join(output)
-                transcript = line
+                transcript = chunk
 
             yield output
-
-        if not self.batch:
-            return
-
-        with Progress("Generating", total_tokens) as p:
-            for output in self.generator(p):
-                yield output
 
     def generate(self, query: Query) -> bytes | None:
         outputs = []
