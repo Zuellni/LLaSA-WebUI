@@ -37,11 +37,10 @@ class Model:
         model_dir: Path,
         codec_dir: Path,
         voice_dir: Path,
-        batch: int = 1,
+        batch: bool = False,
         cache: str = "fp16",
         device: str = "cuda",
         dtype: str = "fp32",
-        max_batch_size: int = 1,
         max_seq_len: int = 2048,
         sample_rate: int = 16000,
     ) -> None:
