@@ -1,6 +1,4 @@
 import json
-import logging
-import logging.config
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Callable, Generator
@@ -14,10 +12,7 @@ from exllamav2.generator import (
     ExLlamaV2Sampler,
 )
 from jinja2 import Template
-from uvicorn.config import LOGGING_CONFIG
 from xcodec2.modeling_xcodec2 import XCodec2Model
-
-logging.config.dictConfig(LOGGING_CONFIG)
 
 import utils
 from schema import Query
@@ -44,9 +39,7 @@ class Model:
         max_seq_len: int = 2048,
         sample_rate: int = 16000,
     ) -> None:
-        self.logger = logging.getLogger("uvicorn")
-        self.logger.setLevel(logging.INFO)
-        self.logger.info("Loading...")
+        utils.info("Loading.")
 
         self.batch = batch
         self.device = device
@@ -86,7 +79,7 @@ class Model:
             generator = ExLlamaV2DynamicGenerator(model, cache, tokenizer)
             generator.warmup()
 
-        self.logger.info(f"Loaded model in {timer.interval:.2f} seconds.")
+        utils.info(f"Loaded model in {timer.interval:.2f} seconds.")
         return generator
 
     def load_codec(self, path: Path) -> XCodec2Model:
@@ -94,7 +87,7 @@ class Model:
             codec = XCodec2Model.from_pretrained(path)
             codec = codec.eval().to(self.device, self.dtype)
 
-        self.logger.info(f"Loaded codec in {timer.interval:.2f} seconds.")
+        utils.info(f"Loaded codec in {timer.interval:.2f} seconds.")
         return codec
 
     def load_voices(
@@ -104,7 +97,7 @@ class Model:
             files = [f for f in path.glob("*.*") if f.suffix in suffixes]
             voices = dict([self.encode(f) for f in files])
 
-        self.logger.info(f"Loaded {len(files)} voices in {timer.interval:.2f} seconds.")
+        utils.info(f"Loaded {len(files)} voices in {timer.interval:.2f} seconds.")
         return voices
 
     @autocast
@@ -162,7 +155,7 @@ class Model:
                     output = []
 
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
-        self.logger.info(f"Started generation with seed {query.seed}.")
+        utils.info(f"Started generation with seed {query.seed}.")
 
         voice = self.voices.get(query.voice, {})
         audio = voice.get("audio", [])
@@ -216,7 +209,7 @@ class Model:
                 continue
 
             output, tokens, time = next(self.sample())
-            self.logger.info(f"Generated {tokens} tokens in {time:.2f} seconds.")
+            utils.info(f"Generated {tokens} tokens in {time:.2f} seconds.")
 
             if not output:
                 continue
@@ -231,7 +224,7 @@ class Model:
             return
 
         for output, tokens, time in self.sample():
-            self.logger.info(f"Generated {tokens} tokens in {time:.2f} seconds.")
+            utils.info(f"Generated {tokens} tokens in {time:.2f} seconds.")
             yield output
 
     def generate(self, query: Query) -> bytes | None:

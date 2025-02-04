@@ -9,9 +9,14 @@ from exllamav2 import (
     ExLlamaV2Cache_Q6,
     ExLlamaV2Cache_Q8,
 )
+from rich import print
 from torchaudio import functional as F
 
 nlp = spacy.load("en_core_web_sm")
+
+
+def info(text: str) -> None:
+    print(f"[green]INFO[/green]:{' ' * 5}{text}")
 
 
 def get_cache(cache: str) -> type[ExLlamaV2CacheBase]:
