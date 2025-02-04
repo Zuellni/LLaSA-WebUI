@@ -1,6 +1,7 @@
 import json
 from io import BytesIO
 from pathlib import Path
+from threading import Event
 from typing import Any, Callable, Generator, get_args
 
 import torch
@@ -213,15 +214,21 @@ class Model:
 
             yield output
 
-    def generate(self, query: Query) -> bytes | None:
+    def generate(self, query: Query, cancel_event: Event) -> bytes | None:
         outputs = []
 
         for output in self(query):
             outputs.extend(output)
 
+            if cancel_event.is_set():
+                break
+
         if outputs:
             return self.decode(outputs, query.sample_rate, query.format)
 
-    def stream(self, query: Query) -> Generator[bytes, None, None]:
+    def stream(self, query: Query, cancel_event: Event) -> Generator[bytes, None, None]:
         for output in self(query):
             yield self.decode(output, query.sample_rate, query.format)
+
+            if cancel_event.is_set():
+                break

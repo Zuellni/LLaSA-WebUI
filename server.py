@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from pathlib import Path
-from threading import Lock
+from threading import Event, Lock
 from typing import Any, Generator, get_args
 from warnings import simplefilter
 
@@ -44,6 +44,7 @@ model = Model(
 
 directory = Path(__file__).parent / "assets"
 template = Jinja2Templates(directory)
+cancel_event = None
 lock = Lock()
 
 app = FastAPI()
@@ -79,19 +80,31 @@ def settings() -> dict[str, Any]:
 
 @app.post("/generate")
 def generate(query: Query) -> Response:
+    global cancel_event
+
     with lock:
-        response = model.generate(query)
+        cancel_event = Event()
+        response = model.generate(query, cancel_event)
         return Response(response, media_type=f"audio/{query.format}")
 
 
 @app.post("/stream")
 def stream(query: Query) -> StreamingResponse:
+    global cancel_event
+
     def generator() -> Generator[bytes, None, None]:
-        for response in model.stream(query):
+        for response in model.stream(query, cancel_event):
             yield response
 
     with lock:
+        cancel_event = Event()
         return StreamingResponse(generator(), media_type=f"audio/{query.format}")
+
+
+@app.get("/cancel")
+def cancel() -> None:
+    global cancel_event
+    cancel_event.set()
 
 
 app.mount("/", StaticFiles(directory=directory))

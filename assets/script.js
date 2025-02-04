@@ -1,17 +1,26 @@
 const form = document.querySelector("form")
 const audio = form.querySelector("audio")
 const format = form.querySelector("#format")
+const generate = form.querySelector("#generate")
 const input = form.querySelector("#input")
 const voice = form.querySelector("#voice")
+let running = false
 
 form.addEventListener("submit", async (event) => {
-    generate.value = "Generating..."
-    event.preventDefault()
-
-    const data = new FormData(form)
-    const obj = Object.fromEntries(data.entries())
-
     try {
+        event.preventDefault()
+
+        if (running) {
+            generate.value = "Cancelling"
+            return await fetch("cancel")
+        }
+
+        generate.value = "Generating"
+        running = true
+
+        const data = new FormData(form)
+        const obj = Object.fromEntries(data.entries())
+
         const response = await fetch("generate", {
             method: "post",
             headers: { "content-type": "application/json" },
@@ -23,10 +32,12 @@ form.addEventListener("submit", async (event) => {
         audio.title = `${voice.value}.${format.value}`
         audio.play()
 
-        generate.value = "Generate"
+        generate.value = "Finished"
     } catch {
         generate.value = "Error"
         console.error(error)
+    } finally {
+        running = false
     }
 })
 
