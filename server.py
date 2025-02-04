@@ -1,6 +1,9 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Any, Generator, get_args
+from warnings import simplefilter
+
+simplefilter("ignore")
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -17,10 +20,11 @@ from schema import Query
 parser = ArgumentParser()
 parser.add_argument("--host", default="127.0.0.1")
 parser.add_argument("--port", type=int, default=8020)
-parser.add_argument("-m", "--model_dir", type=Path, required=True)
-parser.add_argument("-c", "--codec_dir", type=Path, required=True)
-parser.add_argument("-v", "--voice_dir", type=Path, default="voices")
-parser.add_argument("--cache-bits", type=int, choices=[4, 6, 8, 16], default=16)
+parser.add_argument("-m", "--model-dir", type=Path, required=True)
+parser.add_argument("-c", "--codec-dir", type=Path, required=True)
+parser.add_argument("-v", "--voice-dir", type=Path, default="voices")
+parser.add_argument("--batch", action="store_true")
+parser.add_argument("--cache", choices=["q4", "q6", "q8", "fp16"], default="fp16")
 parser.add_argument("--device", default="cuda")
 parser.add_argument("--dtype", choices=["fp16", "bf16", "fp32"], default="fp32")
 parser.add_argument("--max-seq-len", type=int, default=2048)
@@ -31,7 +35,8 @@ model = Model(
     model_dir=args.model_dir,
     codec_dir=args.codec_dir,
     voice_dir=args.voice_dir,
-    cache_bits=args.cache_bits,
+    batch=args.batch,
+    cache=args.cache,
     device=args.device,
     dtype=args.dtype,
     max_seq_len=args.max_seq_len,
@@ -67,6 +72,7 @@ async def settings() -> dict[str, Any]:
         if v.default is not PydanticUndefined
     }
 
+    settings["batch"] = args.batch
     settings["formats"] = list(get_args(Query.model_fields["format"].annotation))
     settings["voices"] = list(model.voices)
     return settings

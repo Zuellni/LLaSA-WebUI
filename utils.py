@@ -1,40 +1,44 @@
 from pathlib import Path
-from time import time
-from typing import Self
-from warnings import simplefilter
 
 import spacy
 import torch
-from rich import print
-from torch import Tensor
+from exllamav2 import (
+    ExLlamaV2Cache,
+    ExLlamaV2CacheBase,
+    ExLlamaV2Cache_Q4,
+    ExLlamaV2Cache_Q6,
+    ExLlamaV2Cache_Q8,
+)
 from torchaudio import functional as F
 
 nlp = spacy.load("en_core_web_sm")
-simplefilter("ignore")
 
 
-class Timer:
-    def __init__(self) -> None:
-        self.start = 0.0
-        self.end = 0.0
-        self.total = 0.0
-
-    def __enter__(self) -> Self:
-        self.start = time()
-        return self
-
-    def __exit__(self, _, __, ___) -> None:
-        self.end = time()
-        self.total = self.end - self.start
-
-    def __call__(self, text: str, precision: int = 2) -> None:
-        print(
-            f"[green]INFO[/green]:{' ' * 5}"
-            f"{text} in {self.total:.{precision}f} seconds."
-        )
+def get_cache(cache: str) -> type[ExLlamaV2CacheBase]:
+    match cache:
+        case "q4":
+            return ExLlamaV2Cache_Q4
+        case "q6":
+            return ExLlamaV2Cache_Q6
+        case "q8":
+            return ExLlamaV2Cache_Q8
+        case _:
+            return ExLlamaV2Cache
 
 
-def process_audio(audio: Tensor, input_rate: int, output_rate: int) -> Tensor:
+def get_dtype(dtype: str) -> torch.dtype:
+    match dtype:
+        case "fp16":
+            return torch.float16
+        case "bf16":
+            return torch.bfloat16
+        case _:
+            return torch.float32
+
+
+def process_audio(
+    audio: torch.Tensor, input_rate: int, output_rate: int
+) -> torch.Tensor:
     if audio.shape[0] > 1:
         audio = torch.mean(audio, dim=0, keepdim=True)
 
