@@ -143,21 +143,24 @@ class Model:
         torchaudio.save(buffer, output.cpu(), sample_rate, format=format)
         return buffer.getvalue()
 
-    def generator(self, total: int) -> Generator[list[str], None, None]:
-        with Progress(f"Generating", total) as p:
-            output = []
+    def generator(
+        self, progress: Progress | None = None
+    ) -> Generator[list[str], None, None]:
+        output = []
 
-            while self.model.num_remaining_jobs():
-                for result in self.model.iterate():
-                    text = result.get("text")
-                    p.advance()
+        while self.model.num_remaining_jobs():
+            for result in self.model.iterate():
+                text = result.get("text")
 
-                    if text:
-                        output.append(text)
+                if text:
+                    output.append(text)
 
-                    if result.get("eos"):
-                        yield output
-                        output = []
+                if result.get("eos"):
+                    yield output
+                    output = []
+
+                if progress:
+                    progress.advance()
 
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
         voice = self.voices.get(query.voice, {})
@@ -166,15 +169,18 @@ class Model:
 
         transcript = voice.get("text", "")
         transcript += " " if transcript else ""
-        text = utils.clean_text(query.input)
-        total = 0
 
         self.gen_settings.temperature = query.temperature
         self.gen_settings.token_repetition_penalty = query.repetition_penalty
         self.gen_settings.top_k = query.top_k
         self.gen_settings.top_p = query.top_p
 
-        for line in utils.split_text(text, query.max_len):
+        text = utils.clean_text(query.input)
+        lines = utils.split_text(text, query.max_len)
+        lines_len = len(lines)
+        total_tokens = 0
+
+        for i, line in enumerate(lines):
             messages = [
                 {
                     "role": "user",
@@ -194,7 +200,7 @@ class Model:
             input = self.template.render(messages=messages)[:-10]
             input_ids = self.model.tokenizer.encode(input, add_bos=True)
             max_new_tokens = self.max_seq_len - input_ids.shape[-1]
-            total += max_new_tokens
+            total_tokens += max_new_tokens
 
             if max_new_tokens <= 0:
                 continue
@@ -213,7 +219,8 @@ class Model:
             if self.batch:
                 continue
 
-            output = next(self.generator(max_new_tokens))
+            with Progress(f"Generating {i + 1}/{lines_len}", max_new_tokens) as p:
+                output = next(self.generator(p))
 
             if not output:
                 continue
@@ -227,8 +234,9 @@ class Model:
         if not self.batch:
             return
 
-        for output in self.generator(total):
-            yield output
+        with Progress("Generating", total_tokens) as p:
+            for output in self.generator(p):
+                yield output
 
     def generate(self, query: Query) -> bytes | None:
         outputs = []

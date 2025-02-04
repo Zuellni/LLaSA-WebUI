@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from pathlib import Path
+from threading import Lock
 from typing import Any, Generator, get_args
 from warnings import simplefilter
 
@@ -45,6 +46,7 @@ model = Model(
 
 directory = Path(__file__).parent / "assets"
 template = Jinja2Templates(directory)
+lock = Lock()
 
 app = FastAPI()
 app.add_middleware(
@@ -57,15 +59,15 @@ app.add_middleware(
 
 
 @app.get("/")
-async def index(request: Request) -> _TemplateResponse:
+def index(request: Request) -> _TemplateResponse:
     return template.TemplateResponse(
         name="index.html",
-        context={"request": request, "settings": await settings()},
+        context={"request": request, "settings": settings()},
     )
 
 
 @app.get("/settings")
-async def settings() -> dict[str, Any]:
+def settings() -> dict[str, Any]:
     settings = {
         k: v.default
         for k, v in Query.model_fields.items()
@@ -80,8 +82,9 @@ async def settings() -> dict[str, Any]:
 
 @app.post("/generate")
 def generate(query: Query) -> Response:
-    response = model.generate(query)
-    return Response(response, media_type=f"audio/{query.format}")
+    with lock:
+        response = model.generate(query)
+        return Response(response, media_type=f"audio/{query.format}")
 
 
 @app.post("/stream")
@@ -90,7 +93,8 @@ def stream(query: Query) -> StreamingResponse:
         for response in model.stream(query):
             yield response
 
-    return StreamingResponse(generator(), media_type=f"audio/{query.format}")
+    with lock:
+        return StreamingResponse(generator(), media_type=f"audio/{query.format}")
 
 
 app.mount("/", StaticFiles(directory=directory))

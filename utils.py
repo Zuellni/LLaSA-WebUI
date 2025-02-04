@@ -29,7 +29,7 @@ class Progress:
         self.task = None
 
         self.progress = ProgressBar(
-            TextColumn("{task.description}"),
+            TextColumn("[green]INFO[/green]:     {task.description}"),
             BarColumn(),
             TaskProgressColumn(),
             TimeElapsedColumn(),
