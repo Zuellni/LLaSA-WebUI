@@ -70,7 +70,7 @@ class Model:
         model = ExLlamaV2(config, lazy_load=True)
         cache = utils.cache(cache)(model, lazy=True)
 
-        with Progress("Loading model", len(model.modules) + 1) as progress:
+        with Progress(f"Loading model{' ' * 4}", len(model.modules) + 1) as progress:
             model.load_autosplit(cache, callback=progress.advance)
 
         with Progress("Loading tokenizer"):
@@ -79,7 +79,7 @@ class Model:
         return ExLlamaV2DynamicGenerator(model, cache, tokenizer)
 
     def load_codec(self, path: Path) -> XCodec2Model:
-        with Progress("Loading codec"):
+        with Progress(f"Loading codec{' ' * 4}"):
             codec = XCodec2Model.from_pretrained(path)
             return codec.eval().to(self.device, self.dtype)
 
@@ -87,7 +87,7 @@ class Model:
         suffixes = [f".{s}" for s in Query.formats()]
         files = [f for f in path.glob("*.*") if f.suffix in suffixes]
 
-        with Progress("Loading voices", len(files)) as progress:
+        with Progress(f"Loading voices{' ' * 3}", len(files)) as progress:
             voices = {}
 
             for file in files:

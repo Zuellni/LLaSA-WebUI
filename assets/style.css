@@ -184,7 +184,6 @@ textarea {
         display: grid;
         grid-template-columns: 1fr auto 7rem;
         align-items: center;
-        gap: 1rem;
         border-radius: 1rem;
         background: var(--input);
     }

@@ -74,7 +74,7 @@ def process_audio(
     if audio.shape[0] > 1:
         audio = torch.mean(audio, dim=0, keepdim=True)
 
-    if max_len and len(audio.shape[0] / input_rate) > max_len:
+    if max_len and len(audio.shape[0]) / input_rate > max_len:
         audio = audio[:, : input_rate * max_len]
 
     if input_rate != output_rate:
