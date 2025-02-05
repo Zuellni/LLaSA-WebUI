@@ -1,5 +1,5 @@
 # LLaSA Server
-Server for [LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) and [FastAPI](https://github.com/fastapi/fastapi).
+[LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) server using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) and [FastAPI](https://github.com/fastapi/fastapi).
 
 ## Installation
 ```sh
@@ -38,3 +38,6 @@ git clone https://huggingface.co/annuvin/xcodec2-fp32            codec # fp32
 ```sh
 python server.py -m model -c codec -v voices
 ```
+
+## Preview
+![Preview](https://github.com/user-attachments/assets/ec1d97db-c86e-4113-a846-d6efd2068647)
