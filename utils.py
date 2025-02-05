@@ -27,7 +27,7 @@ class Progress:
         self.task = None
 
         self.progress = ProgressBar(
-            TextColumn("[green]INFO[/green]:     {task.description}"),
+            TextColumn(f"[green]INFO[/green]:{' ' * 5}{{task.description}}"),
             BarColumn(),
             TaskProgressColumn(),
             TimeElapsedColumn(),
@@ -106,4 +106,10 @@ def process_text(text: str, suffixes: list[str] = [".txt"]) -> str:
 
 def split_text(text: str, max_len: int) -> list[str]:
     splitter = TextSplitter(max_len)
-    return splitter.chunks(text)
+    chunks = []
+
+    for line in text.splitlines():
+        chunk = splitter.chunks(line)
+        chunks.extend(chunk)
+
+    return chunks
