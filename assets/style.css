@@ -1,3 +1,23 @@
+@font-face {
+    font-family: Text;
+    src: url(text.woff2);
+}
+
+@font-face {
+    font-family: Icon;
+    src: url(icon.woff2);
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 :root {
     --main: #F3F3F3;
     --input: #E0E0E0;
@@ -9,7 +29,7 @@
 }
 
 * {
-    font: bold 1rem "Noto Sans", sans-serif;
+    font: normal 1rem Text, sans-serif;
     appearance: none;
     border: none;
     box-sizing: border-box;
@@ -24,16 +44,17 @@ body {
     display: grid;
     align-items: center;
     justify-items: center;
+    width: 100%;
     height: 100%;
     background:
         radial-gradient(ellipse at top,
-            var(--back) 100%,
+            var(--back) 50%,
             var(--main));
 }
 
 form {
     display: grid;
-    grid-template-columns: 3.5rem 1fr 3.5rem 1fr;
+    grid-template-columns: auto 1fr auto 1fr;
     align-items: center;
     border-radius: 1rem;
     gap: 1rem;
@@ -41,14 +62,6 @@ form {
     padding: 1rem;
     background: var(--main);
     box-shadow: 1rem 1rem var(--shadow);
-}
-
-fieldset {
-    display: grid;
-    grid-column: span 4;
-    grid-template-columns: 3.5rem 1fr;
-    align-items: center;
-    gap: 1rem;
 }
 
 hr {
@@ -67,13 +80,43 @@ label {
     color: var(--shadow);
 }
 
+button,
 input,
 select,
 textarea {
     height: 3.5rem;
     border-radius: 1rem;
-    padding: 1rem;
+    padding: 1.25rem;
     background: var(--input);
+}
+
+button {
+    padding: 0;
+    background: var(--color);
+    transition: .5s;
+
+    &:hover {
+        background: var(--hover);
+
+        a,
+        i {
+            color: var(--color);
+        }
+    }
+
+    a,
+    i {
+        cursor: pointer;
+        display: block;
+        font-family: Icon;
+        padding: 1.25rem;
+        color: var(--main);
+        transition: inherit;
+
+        &.running {
+            animation: rotate 3s linear infinite;
+        }
+    }
 }
 
 input {
@@ -83,17 +126,26 @@ input {
         }
     }
 
-    &[type=submit] {
-        grid-column: span 4;
-        text-transform: uppercase;
+    &[type=range] {
         cursor: pointer;
-        background: var(--color);
-        color: var(--main);
-        transition: .5s;
 
-        &:hover {
-            background: var(--hover);
-            color: var(--color);
+        &::-webkit-slider-runnable-track,
+        &::-webkit-slider-thumb {
+            height: 1rem;
+            border-radius: 1rem;
+            appearance: none;
+        }
+
+        &::-webkit-slider-runnable-track {
+            background: var(--shadow);
+            overflow: hidden;
+        }
+
+        &::-webkit-slider-thumb {
+            width: 1rem;
+            background: var(--color);
+            box-shadow: calc(-100vw - .5rem) 0 0 100vw var(--hover);
+            transition: .5s;
         }
     }
 }
@@ -105,11 +157,17 @@ select {
 }
 
 textarea {
-    width: 100%;
+    grid-column: span 4;
     min-width: 100%;
-    max-width: calc(100vw - 8.5em);
+    max-width: calc(100vw - 4rem);
     min-height: 3.5rem;
+    padding: 1rem;
     resize: horizontal;
+    text-align: justify;
+
+    &::placeholder {
+        color: var(--shadow);
+    }
 
     &::-webkit-resizer,
     &::-webkit-scrollbar {
@@ -117,11 +175,29 @@ textarea {
     }
 }
 
-audio {
+#player {
+    display: grid;
     grid-column: span 4;
-    width: 100%;
+    grid-template-columns: 3.5rem 3.5rem 1fr 3.5rem;
+    gap: 1rem;
 
-    &::-webkit-media-controls-enclosure {
-        background: transparent;
+    #track {
+        display: grid;
+        grid-template-columns: 1fr auto 7rem;
+        align-items: center;
+        gap: 1rem;
+        border-radius: 1rem;
+        background: var(--input);
+    }
+
+    #time {
+        span {
+            color: var(--shadow);
+
+            &#current::after {
+                content: " / ";
+                color: var(--color);
+            }
+        }
     }
 }

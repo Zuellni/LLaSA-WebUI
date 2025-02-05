@@ -6,7 +6,6 @@ Server for [LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd
 git clone https://github.com/zuellni/llasa-server
 cd llasa-server
 pip install -r requirements.txt
-spacy download en_core_web_sm
 ```
 
 ## Downloads

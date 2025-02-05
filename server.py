@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from threading import Event, Lock
-from typing import Any, Generator, get_args
+from typing import Any, Generator
 from warnings import simplefilter
 
 simplefilter("ignore")
@@ -73,7 +73,7 @@ def settings() -> dict[str, Any]:
         if v.default is not PydanticUndefined
     }
 
-    settings["formats"] = list(get_args(Query.model_fields["format"].annotation))
+    settings["formats"] = Query.formats()
     settings["voices"] = list(model.voices)
     return settings
 
@@ -101,7 +101,7 @@ def stream(query: Query) -> StreamingResponse:
         return StreamingResponse(generator(), media_type=f"audio/{query.format}")
 
 
-@app.get("/cancel")
+@app.post("/cancel")
 def cancel() -> None:
     global cancel_event
     cancel_event.set()

@@ -1,7 +1,6 @@
 exllamav2
 fastapi-slim
-flash-attn
-spacy
+semantic-text-splitter
 torch
 torchaudio
 uvicorn

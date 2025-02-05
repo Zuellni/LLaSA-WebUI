@@ -2,7 +2,7 @@ import json
 from io import BytesIO
 from pathlib import Path
 from threading import Event
-from typing import Any, Callable, Generator, get_args
+from typing import Any, Callable, Generator
 
 import torch
 import torchaudio
@@ -41,7 +41,7 @@ class Model:
         sample_rate: int = 16000,
     ) -> None:
         self.device = device
-        self.dtype = utils.get_dtype(dtype)
+        self.dtype = utils.dtype(dtype)
         self.max_seq_len = max_seq_len
         self.sample_rate = sample_rate
 
@@ -68,7 +68,7 @@ class Model:
         config = ExLlamaV2Config(str(path))
         config.max_seq_len = self.max_seq_len
         model = ExLlamaV2(config, lazy_load=True)
-        cache = utils.get_cache(cache)(model, lazy=True)
+        cache = utils.cache(cache)(model, lazy=True)
 
         with Progress("Loading model", len(model.modules) + 1) as progress:
             model.load_autosplit(cache, callback=progress.advance)
@@ -84,7 +84,7 @@ class Model:
             return codec.eval().to(self.device, self.dtype)
 
     def load_voices(self, path: Path) -> dict[str, dict[str, Any]]:
-        suffixes = [f".{s}" for s in get_args(Query.model_fields["format"].annotation)]
+        suffixes = [f".{s}" for s in Query.formats()]
         files = [f for f in path.glob("*.*") if f.suffix in suffixes]
 
         with Progress("Loading voices", len(files)) as progress:
@@ -142,7 +142,7 @@ class Model:
 
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
         self.gen_settings.temperature = query.temperature
-        self.gen_settings.token_repetition_penalty = query.repetition_penalty
+        self.gen_settings.token_repetition_penalty = query.penalty
         self.gen_settings.top_k = query.top_k
         self.gen_settings.top_p = query.top_p
 
@@ -154,7 +154,7 @@ class Model:
         transcript += " " if transcript else ""
 
         text = utils.clean_text(query.input)
-        chunks = utils.split_text(text, query.max_len)
+        chunks = utils.split_text(text, query.chunk)
         count = len(chunks)
         digits = len(str(count))
 
@@ -224,11 +224,11 @@ class Model:
                 break
 
         if outputs:
-            return self.decode(outputs, query.sample_rate, query.format)
+            return self.decode(outputs, query.rate, query.format)
 
     def stream(self, query: Query, cancel_event: Event) -> Generator[bytes, None, None]:
         for output in self(query):
-            yield self.decode(output, query.sample_rate, query.format)
+            yield self.decode(output, query.rate, query.format)
 
             if cancel_event.is_set():
                 break

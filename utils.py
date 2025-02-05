@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Self
 
-import spacy
 import torch
 from exllamav2 import (
     ExLlamaV2Cache,
@@ -17,9 +16,8 @@ from rich.progress import (
     TimeElapsedColumn,
     TaskProgressColumn,
 )
+from semantic_text_splitter import TextSplitter
 from torchaudio import functional as F
-
-nlp = spacy.load("en_core_web_sm")
 
 
 class Progress:
@@ -48,7 +46,7 @@ class Progress:
         self.progress.stop()
 
 
-def get_cache(cache: str) -> type[ExLlamaV2CacheBase]:
+def cache(cache: str) -> type[ExLlamaV2CacheBase]:
     match cache:
         case "q4":
             return ExLlamaV2Cache_Q4
@@ -60,7 +58,7 @@ def get_cache(cache: str) -> type[ExLlamaV2CacheBase]:
             return ExLlamaV2Cache
 
 
-def get_dtype(dtype: str) -> torch.dtype:
+def dtype(dtype: str) -> torch.dtype:
     match dtype:
         case "fp16":
             return torch.float16
@@ -71,10 +69,13 @@ def get_dtype(dtype: str) -> torch.dtype:
 
 
 def process_audio(
-    audio: torch.Tensor, input_rate: int, output_rate: int
+    audio: torch.Tensor, input_rate: int, output_rate: int, max_len: int = 0
 ) -> torch.Tensor:
     if audio.shape[0] > 1:
         audio = torch.mean(audio, dim=0, keepdim=True)
+
+    if max_len and len(audio.shape[0] / input_rate) > max_len:
+        audio = audio[:, : input_rate * max_len]
 
     if input_rate != output_rate:
         audio = F.resample(audio, input_rate, output_rate)
@@ -104,24 +105,5 @@ def process_text(text: str, suffixes: list[str] = [".txt"]) -> str:
 
 
 def split_text(text: str, max_len: int) -> list[str]:
-    text = clean_text(text)
-    chunks = []
-
-    for line in text.splitlines():
-        chunk = ""
-
-        for sent in nlp(line).sents:
-            sent = sent.text.strip()
-
-            if len(chunk) + len(sent) < max_len:
-                chunk = f"{chunk} {sent}" if chunk else sent
-            else:
-                if chunk:
-                    chunks.append(chunk)
-
-                chunk = sent
-
-        if chunk:
-            chunks.append(chunk)
-
-    return chunks
+    splitter = TextSplitter(max_len)
+    return splitter.chunks(text)

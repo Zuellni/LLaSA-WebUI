@@ -11,11 +11,10 @@
 </head>
 
 <body>
+    <audio></audio>
+
     <form>
-        <fieldset>
-            <label for="input">Input</label>
-            <textarea id="input" name="input"></textarea>
-        </fieldset>
+        <textarea name="input" placeholder="Input"></textarea>
 
         <hr>
 
@@ -27,8 +26,8 @@
             {% endfor %}
         </select>
 
-        <label for="maxLen">Chunk</label>
-        <input id="maxLen" name="max_len" type="number" value="{{ settings.max_len }}">
+        <label for="chunk">Chunk</label>
+        <input id="chunk" name="chunk" type="number" value="{{ settings.chunk }}">
 
         <label for="format">Format</label>
         <select id="format" name="format">
@@ -37,8 +36,8 @@
             {% endfor %}
         </select>
 
-        <label for="sampleRate">Rate</label>
-        <input id="sampleRate" name="sample_rate" type="number" value="{{ settings.sample_rate }}">
+        <label for="rate">Rate</label>
+        <input id="rate" name="rate" type="number" value="{{ settings.rate }}">
 
         <label for="reuse">Reuse</label>
         <select id="reuse" name="reuse">
@@ -49,9 +48,8 @@
         <label for="seed">Seed</label>
         <input id="seed" name="seed" type="number" value="{{ settings.seed }}">
 
-        <label for="repetitionPenalty">Penalty</label>
-        <input id="repetitionPenalty" name="repetition_penalty" step="0.001" type="number"
-            value="{{ settings.repetition_penalty }}">
+        <label for="penalty">Penalty</label>
+        <input id="penalty" name="penalty" step="0.001" type="number" value="{{ settings.penalty }}">
 
         <label for="temperature">Temp</label>
         <input id="temperature" name="temperature" step="0.001" type="number" value="{{ settings.temperature }}">
@@ -64,8 +62,30 @@
 
         <hr>
 
-        <input id="generate" type="submit" value="Generate">
-        <audio controls></audio>
+        <div id="player">
+            <button id="submit" type="submit">
+                <i>sync</i>
+            </button>
+
+            <button id="play" type="button">
+                <i>play</i>
+            </button>
+
+            <div id="track">
+                <input id="timeline" min="0.0" max="0.0" step="0.01" type="range" value="0.0">
+
+                <div id="time">
+                    <span id="current">00:00</span>
+                    <span id="duration">00:00</span>
+                </div>
+
+                <input id="volume" min="0.0" max="1.0" step="0.1" type="range" value="1.0">
+            </div>
+
+            <button id="download" type="button">
+                <a>save</a>
+            </button>
+        </div>
     </form>
 </body>
 
