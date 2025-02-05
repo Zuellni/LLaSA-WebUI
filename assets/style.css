@@ -86,7 +86,7 @@ select,
 textarea {
     height: 3.5rem;
     border-radius: 1rem;
-    padding: 1.25rem;
+    padding: 1rem;
     background: var(--input);
 }
 
@@ -161,7 +161,6 @@ textarea {
     min-width: 100%;
     max-width: calc(100vw - 4rem);
     min-height: 3.5rem;
-    padding: 1rem;
     resize: horizontal;
     text-align: justify;
 
