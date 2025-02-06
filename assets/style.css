@@ -64,6 +64,14 @@ form {
     box-shadow: 1rem 1rem var(--shadow);
 }
 
+fieldset {
+    display: grid;
+    grid-column: span 2;
+    grid-template-columns: 4rem 1fr 3.5rem;
+    align-items: center;
+    gap: 1rem;
+}
+
 hr {
     grid-column: span 4;
     height: .25rem;
@@ -83,14 +91,16 @@ label {
 button,
 input,
 select,
-textarea {
+textarea,
+#picker {
     height: 3.5rem;
     border-radius: 1rem;
     padding: 1rem;
     background: var(--input);
 }
 
-button {
+button,
+#picker {
     padding: 0;
     background: var(--color);
     transition: .5s;
@@ -120,6 +130,10 @@ button {
 }
 
 input {
+    &[type=file] {
+        display: none;
+    }
+
     &[type=number] {
         &::-webkit-inner-spin-button {
             display: none;

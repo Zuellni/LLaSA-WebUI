@@ -83,7 +83,7 @@ def process_audio(
     return audio
 
 
-def clean_text(text: str | list[str]) -> str:
+def clean_text(text: list[str] | str) -> str:
     if isinstance(text, list):
         text = "\n".join(text)
 

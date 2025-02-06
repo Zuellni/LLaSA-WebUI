@@ -18,13 +18,19 @@
 
         <hr>
 
-        <label for="voice">Voice</label>
-        <select id="voice" name="voice">
-            <option value="">none</option>
-            {% for voice in settings.voices %}
-            <option value="{{ voice }}">{{ voice }}</option>
-            {% endfor %}
-        </select>
+        <fieldset>
+            <label for="voice">Voice</label>
+            <select id="voice" name="voice">
+                <option value="">none</option>
+                {% for voice in settings.voices %}
+                <option value="{{ voice }}">{{ voice }}</option>
+                {% endfor %}
+            </select>
+            <label for="upload" id="picker">
+                <i>folder</i>
+            </label>
+            <input accept="{% for format in settings.formats %}.{{ format }}, {% endfor %}" id="upload" type="file">
+        </fieldset>
 
         <label for="chunk">Chunk</label>
         <input id="chunk" name="chunk" type="number" value="{{ settings.chunk }}">
@@ -66,22 +72,17 @@
             <button id="submit" type="submit">
                 <i>sync</i>
             </button>
-
             <button id="play" type="button">
                 <i>play</i>
             </button>
-
             <div id="track">
                 <input id="timeline" min="0.0" max="0.0" step="0.01" type="range" value="0.0">
-
                 <div id="time">
                     <span id="current">00:00</span>
                     <span id="duration">00:00</span>
                 </div>
-
                 <input id="volume" min="0.0" max="1.0" step="0.1" type="range" value="1.0">
             </div>
-
             <button id="download" type="button">
                 <a>save</a>
             </button>

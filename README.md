@@ -1,11 +1,15 @@
-# LLaSA Server
-[LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) server using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) and [FastAPI](https://github.com/fastapi/fastapi).
+# LLaSA WebUI
+WebUI for [LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) with an [OpenAI](https://platform.openai.com/docs/guides/text-to-speech) compatible [FastAPI](https://github.com/fastapi/fastapi) server.
 
 ## Installation
 ```sh
-git clone https://github.com/zuellni/llasa-server
-cd llasa-server
+git clone https://github.com/zuellni/llasa-webui & cd llasa-webui
+mamba create -n tts python=3.12 # you can use conda instead, or create a venv
+pip install torch torchao torchaudio torchvision --index-url https://download.pytorch.org/whl/cu126
 pip install -r requirements.txt
+pip install exllamav2 # jit, you can install a wheel on windows
+pip install flash-attn # optional, needs a wheel on windows
+pip install xcodec2 --no-deps # ignore all dependency errors
 ```
 
 ## Downloads
@@ -40,4 +44,4 @@ python server.py -m model -c codec -v voices
 ```
 
 ## Preview
-![Preview](https://github.com/user-attachments/assets/ec1d97db-c86e-4113-a846-d6efd2068647)
+![Preview](assets/preview.png)

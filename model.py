@@ -2,16 +2,17 @@ import json
 from io import BytesIO
 from pathlib import Path
 from threading import Event
-from typing import Any, Callable, Generator
+from typing import Any, BinaryIO, Callable, Generator
 
 import torch
 import torchaudio
-from exllamav2 import ExLlamaV2, ExLlamaV2Config, ExLlamaV2Tokenizer
+from exllamav2 import ExLlamaV2, ExLlamaV2Config, ExLlamaV2Tokenizer, attn
 from exllamav2.generator import (
     ExLlamaV2DynamicGenerator,
     ExLlamaV2DynamicJob,
     ExLlamaV2Sampler,
 )
+from fastapi import UploadFile
 from jinja2 import Template
 from xcodec2.modeling_xcodec2 import XCodec2Model
 
@@ -47,7 +48,11 @@ class Model:
 
         self.model = self.load_model(model_dir, cache)
         self.codec = self.load_codec(codec_dir)
-        self.voices = self.load_voices(voice_dir)
+
+        self.voice_dir = voice_dir
+        self.voice_cache = voice_dir / ".cache"
+        self.voice_cache.mkdir(parents=True, exist_ok=True)
+        self.voices = self.load_voices()
 
         self.template = Template(
             self.model.tokenizer.tokenizer_config_dict.get("chat_template", "")
@@ -69,6 +74,7 @@ class Model:
         config.max_seq_len = self.max_seq_len
         model = ExLlamaV2(config, lazy_load=True)
         cache = utils.cache(cache)(model, lazy=True)
+        paged = attn.has_flash_attn
 
         with Progress(f"Loading model{' ' * 4}", len(model.modules) + 1) as progress:
             model.load_autosplit(cache, callback=progress.advance)
@@ -76,68 +82,84 @@ class Model:
         with Progress("Loading tokenizer"):
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
 
-        return ExLlamaV2DynamicGenerator(model, cache, tokenizer)
+        return ExLlamaV2DynamicGenerator(model, cache, tokenizer, paged=paged)
 
-    def load_codec(self, path: Path) -> XCodec2Model:
+    def load_codec(self, path: Path | str) -> XCodec2Model:
         with Progress(f"Loading codec{' ' * 4}"):
             codec = XCodec2Model.from_pretrained(path)
             return codec.eval().to(self.device, self.dtype)
 
-    def load_voices(self, path: Path) -> dict[str, dict[str, Any]]:
+    def load_voices(self) -> dict[str, dict[str, Any]]:
         suffixes = [f".{s}" for s in Query.formats()]
-        files = [f for f in path.glob("*.*") if f.suffix in suffixes]
+        files = [f for f in self.voice_dir.glob("*.*") if f.suffix in suffixes]
+        voices = {}
 
-        with Progress(f"Loading voices{' ' * 3}", len(files)) as progress:
-            voices = {}
-
+        with Progress(f"Caching voices{' ' * 3}", len(files)) as progress:
             for file in files:
-                result = self.encode(file)
+                self.cache_path(file)
                 progress.advance()
 
-                if result:
-                    name, voice = result
-                    voices[name] = voice
+        for file in self.voice_cache.glob("*.json"):
+            name = file.stem.lower()
+            data = json.loads(file.read_text(encoding="utf-8"))
+            voices[name] = {"audio": data["audio"], "text": data["text"]}
 
-            return voices
+        return voices
 
-    @autocast
-    def encode(
-        self, path: Path, cache_dir: str = ".cache"
-    ) -> tuple[str, dict[str, Any]] | None:
-        name = path.stem.lower()
-        file = path.parent / cache_dir / f"{name}.json"
-        file.parent.mkdir(parents=True, exist_ok=True)
+    async def cache_audio(
+        self, audio: UploadFile, text: str, rebuild: bool = True
+    ) -> None:
+        name = Path(audio.filename).stem.lower()
+        file = self.voice_cache / f"{name}.json"
 
-        if not file.exists():
-            text = path.parent / f"{name}.txt"
-
-            if not text.exists():
-                return
-
+        if not file.exists() or rebuild:
+            buffer = await audio.read()
+            buffer = BytesIO(buffer)
+            audio = self.encode(buffer)
             text = utils.process_text(text)
-            audio, sample_rate = torchaudio.load(path)
-            audio = utils.process_audio(audio, sample_rate, self.sample_rate)
-            audio = self.codec.encode_code(audio, self.sample_rate)
-            audio = audio[0, 0, :].tolist()
 
             file.write_text(
                 json.dumps({"audio": audio, "text": text}), encoding="utf-8"
             )
 
         data = json.loads(file.read_text(encoding="utf-8"))
-        return name, {"audio": data["audio"], "text": data["text"]}
+        self.voices[name] = {"audio": data["audio"], "text": data["text"]}
+
+    def cache_path(self, path: Path, rebuild: bool = False) -> None:
+        name = path.stem.lower()
+        file = self.voice_cache / f"{name}.json"
+
+        if not file.exists() or rebuild:
+            text = self.voice_dir / f"{name}.txt"
+
+            if not text.exists():
+                return
+
+            audio = self.encode(path)
+            text = utils.process_text(text)
+
+            file.write_text(
+                json.dumps({"audio": audio, "text": text}), encoding="utf-8"
+            )
 
     @autocast
-    def decode(self, input: list[str], sample_rate: int, format: str) -> bytes:
+    def encode(self, path: BinaryIO | Path) -> list[int]:
+        audio, input_rate = torchaudio.load(path)
+        audio = utils.process_audio(audio, input_rate, self.sample_rate)
+        audio = self.codec.encode_code(audio, self.sample_rate)
+        return audio[0, 0, :].tolist()
+
+    @autocast
+    def decode(self, input: list[str], output_rate: int, format: str) -> bytes:
         input = [int(i[4:-2]) for i in input if i]
         input = torch.tensor([[input]]).to(self.device)
 
         output = self.codec.decode_code(input)
         output = output[0, 0, :].unsqueeze(0)
-        output = utils.process_audio(output, self.sample_rate, sample_rate)
+        output = utils.process_audio(output, self.sample_rate, output_rate)
 
         buffer = BytesIO()
-        torchaudio.save(buffer, output.cpu(), sample_rate, format=format)
+        torchaudio.save(buffer, output.cpu(), output_rate, format=format)
         return buffer.getvalue()
 
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
@@ -146,7 +168,7 @@ class Model:
         self.gen_settings.top_k = query.top_k
         self.gen_settings.top_p = query.top_p
 
-        voice = self.voices.get(query.voice, {})
+        voice = self.voices.get(query.voice.lower(), {})
         audio = voice.get("audio", [])
         audio = "".join([f"<|s_{a}|>" for a in audio])
 

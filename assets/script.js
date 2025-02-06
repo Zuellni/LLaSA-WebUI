@@ -4,6 +4,8 @@ const textarea = document.querySelector("textarea")
 
 const format = document.querySelector("#format")
 const voice = document.querySelector("#voice")
+const picker = document.querySelector("#picker i")
+const upload = document.querySelector("#upload")
 
 const player = document.querySelector("#player")
 const submit = document.querySelector("#submit i")
@@ -21,6 +23,13 @@ const formatTime = (time) => {
     return `${minutes}:${seconds}`
 }
 
+const addOption = (node, text, value) => {
+    const option = document.createElement("option")
+    option.textContent = text
+    option.value = value
+    node.append(option)
+}
+
 let running = false
 
 form.addEventListener("submit", async (event) => {
@@ -30,19 +39,19 @@ form.addEventListener("submit", async (event) => {
 
         if (running) {
             return await fetch("cancel", {
-                method: "post",
+                method: "POST",
             })
         }
 
         running = true
         submit.classList = "running"
 
-        const data = new FormData(form)
-        const obj = Object.fromEntries(data.entries())
+        const formData = new FormData(form)
+        const obj = Object.fromEntries(formData)
 
         const response = await fetch("generate", {
-            method: "post",
-            headers: { "content-type": "application/json" },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(obj),
         })
 
@@ -55,7 +64,7 @@ form.addEventListener("submit", async (event) => {
         const name = voice.value || "random"
         download.download = `${name}.${format.value}`
         download.href = url
-    } catch {
+    } catch (error) {
         submit.textContent = "xmark-large"
         console.error(error)
     } finally {
@@ -67,6 +76,38 @@ form.addEventListener("submit", async (event) => {
 textarea.addEventListener("input", () => {
     textarea.style.height = ""
     textarea.style.height = `${textarea.scrollHeight}px`
+})
+
+upload.addEventListener("change", async (event) => {
+    try {
+        const files = event.target.files
+        picker.textContent = "folder"
+
+        if (!files || !textarea.value) {
+            return
+        }
+
+        const formData = new FormData()
+        formData.append("audio", files[0])
+        formData.append("text", textarea.value)
+
+        const response = await fetch("upload", {
+            method: "POST",
+            body: formData,
+        })
+
+        data = await response.json()
+        voice.textContent = ""
+        addOption(voice, "None", "")
+
+        for (const entry of data) {
+            addOption(voice, entry, entry)
+        }
+
+        picker.textContent = "check"
+    } catch (error) {
+        picker.textContent = "xmark-large"
+    }
 })
 
 audio.addEventListener("play", () => {

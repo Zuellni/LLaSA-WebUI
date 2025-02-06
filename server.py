@@ -1,13 +1,13 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from threading import Event, Lock
-from typing import Any, Generator
+from typing import Annotated, Any, Generator
 from warnings import simplefilter
 
 simplefilter("ignore")
 
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -65,6 +65,12 @@ def index(request: Request) -> _TemplateResponse:
     )
 
 
+@app.post("/cancel")
+def cancel() -> None:
+    global cancel_event
+    cancel_event.set()
+
+
 @app.get("/settings")
 def settings() -> dict[str, Any]:
     settings = {
@@ -74,8 +80,16 @@ def settings() -> dict[str, Any]:
     }
 
     settings["formats"] = Query.formats()
-    settings["voices"] = list(model.voices)
+    settings["voices"] = sorted(model.voices)
     return settings
+
+
+@app.post("/upload")
+async def upload(
+    audio: UploadFile, text: Annotated[str, Form(min_length=1)]
+) -> list[str]:
+    await model.cache_audio(audio, text)
+    return sorted(model.voices)
 
 
 @app.post("/generate")
@@ -99,12 +113,6 @@ def stream(query: Query) -> StreamingResponse:
     with lock:
         cancel_event = Event()
         return StreamingResponse(generator(), media_type=f"audio/{query.format}")
-
-
-@app.post("/cancel")
-def cancel() -> None:
-    global cancel_event
-    cancel_event.set()
 
 
 app.mount("/", StaticFiles(directory=directory))

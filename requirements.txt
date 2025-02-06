@@ -1,7 +1,9 @@
-exllamav2
 fastapi-slim
+python-multipart
+rotary-embedding-torch
 semantic-text-splitter
-torch
-torchaudio
+soundfile
+torchtune
+transformers
 uvicorn
-xcodec2
+vector-quantize-pytorch
