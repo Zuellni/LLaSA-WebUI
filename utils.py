@@ -16,6 +16,7 @@ from rich.progress import (
     Progress as ProgressBar,
     TextColumn,
     TimeElapsedColumn,
+    TimeRemainingColumn,
     TaskProgressColumn,
 )
 from semantic_text_splitter import TextSplitter
@@ -30,10 +31,10 @@ class Progress:
 
         self.progress = ProgressBar(
             TextColumn(f"[green]INFO[/green]:{' ' * 5}{{task.description}}"),
-            BarColumn(),
+            BarColumn(bar_width=None),
             TaskProgressColumn(),
             TimeElapsedColumn(),
-            expand=True,
+            TimeRemainingColumn(),
         )
 
     def __enter__(self) -> Self:

@@ -2,9 +2,6 @@ from argparse import ArgumentParser
 from pathlib import Path
 from threading import Event, Lock
 from typing import Annotated, Any, Generator
-from warnings import simplefilter
-
-simplefilter("ignore")
 
 import uvicorn
 from fastapi import FastAPI, Form, Request, UploadFile
