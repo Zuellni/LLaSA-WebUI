@@ -1,4 +1,5 @@
 from pathlib import Path
+from time import time
 from typing import Self
 
 import torch
@@ -9,6 +10,7 @@ from exllamav2 import (
     ExLlamaV2Cache_Q6,
     ExLlamaV2Cache_Q8,
 )
+from rich import print
 from rich.progress import (
     BarColumn,
     Progress as ProgressBar,
@@ -31,6 +33,7 @@ class Progress:
             BarColumn(),
             TaskProgressColumn(),
             TimeElapsedColumn(),
+            expand=True,
         )
 
     def __enter__(self) -> Self:
@@ -38,12 +41,33 @@ class Progress:
         self.task = self.progress.add_task(self.description, total=self.total)
         return self
 
-    def advance(self, *args, advance: float = 1.0) -> None:
-        self.progress.advance(self.task, advance)
-
     def __exit__(self, *args) -> None:
         self.progress.update(self.task, completed=self.total)
         self.progress.stop()
+
+    def __call__(self, *args, advance: float = 1.0) -> None:
+        self.progress.advance(self.task, advance)
+
+
+class Timer:
+    def __init__(self) -> None:
+        self.start = 0.0
+        self.end = 0.0
+        self.total = 0.0
+
+    def __enter__(self) -> Self:
+        self.start = time()
+        return self
+
+    def __exit__(self, *args) -> None:
+        self.end = time()
+        self.total = self.end - self.start
+
+    def __call__(self, text: str, precision: int = 2) -> None:
+        print(
+            f"[green]INFO[/green]:{' ' * 5}{text} "
+            f"in {self.total:.{precision}f} seconds."
+        )
 
 
 def cache(cache: str) -> type[ExLlamaV2CacheBase]:

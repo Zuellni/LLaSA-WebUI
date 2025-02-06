@@ -44,8 +44,8 @@ model = Model(
 
 directory = Path(__file__).parent / "assets"
 template = Jinja2Templates(directory)
-cancel_event = None
 lock = Lock()
+event = None
 
 app = FastAPI()
 app.add_middleware(
@@ -65,10 +65,10 @@ def index(request: Request) -> _TemplateResponse:
     )
 
 
-@app.post("/cancel")
-def cancel() -> None:
-    global cancel_event
-    cancel_event.set()
+@app.post("/interrupt")
+def interrupt() -> None:
+    global event
+    event.set()
 
 
 @app.get("/settings")
@@ -94,24 +94,24 @@ async def upload(
 
 @app.post("/generate")
 def generate(query: Query) -> Response:
-    global cancel_event
+    global event
 
     with lock:
-        cancel_event = Event()
-        response = model.generate(query, cancel_event)
+        event = Event()
+        response = model.generate(query, event)
         return Response(response, media_type=f"audio/{query.format}")
 
 
 @app.post("/stream")
 def stream(query: Query) -> StreamingResponse:
-    global cancel_event
+    global event
 
     def generator() -> Generator[bytes, None, None]:
-        for response in model.stream(query, cancel_event):
+        for response in model.stream(query, event):
             yield response
 
     with lock:
-        cancel_event = Event()
+        event = Event()
         return StreamingResponse(generator(), media_type=f"audio/{query.format}")
 
 

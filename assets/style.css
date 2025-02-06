@@ -123,7 +123,7 @@ button,
         color: var(--main);
         transition: inherit;
 
-        &.running {
+        &.generating {
             animation: rotate 3s linear infinite;
         }
     }

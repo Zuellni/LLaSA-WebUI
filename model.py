@@ -18,7 +18,7 @@ from xcodec2.modeling_xcodec2 import XCodec2Model
 
 import utils
 from schema import Query
-from utils import Progress
+from utils import Progress, Timer
 
 
 class Model:
@@ -77,7 +77,7 @@ class Model:
         paged = attn.has_flash_attn
 
         with Progress(f"Loading model{' ' * 4}", len(model.modules) + 1) as progress:
-            model.load_autosplit(cache, callback=progress.advance)
+            model.load_autosplit(cache, callback=progress())
 
         with Progress("Loading tokenizer"):
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
@@ -94,10 +94,10 @@ class Model:
         files = [f for f in self.voice_dir.glob("*.*") if f.suffix in suffixes]
         voices = {}
 
-        with Progress(f"Caching voices{' ' * 3}", len(files)) as progress:
+        with Progress(f"Caching voices{' ' *  3}", len(files)) as progress:
             for file in files:
                 self.cache_path(file)
-                progress.advance()
+                progress()
 
         for file in self.voice_cache.glob("*.json"):
             name = file.stem.lower()
@@ -180,77 +180,82 @@ class Model:
         count = len(chunks)
         digits = len(str(count))
 
-        for index, chunk in enumerate(chunks):
-            messages = [
-                {
-                    "role": "user",
-                    "content": (
-                        "Convert the text to speech:"
-                        "<|TEXT_UNDERSTANDING_START|>"
-                        f"{transcript}{chunk}"
-                        "<|TEXT_UNDERSTANDING_END|>"
-                    ),
-                },
-                {
-                    "role": "assistant",
-                    "content": f"<|SPEECH_GENERATION_START|>{audio}",
-                },
-            ]
+        with Timer() as timer:
+            for index, chunk in enumerate(chunks):
+                messages = [
+                    {
+                        "role": "user",
+                        "content": (
+                            "Convert the text to speech:"
+                            "<|TEXT_UNDERSTANDING_START|>"
+                            f"{transcript}{chunk}"
+                            "<|TEXT_UNDERSTANDING_END|>"
+                        ),
+                    },
+                    {
+                        "role": "assistant",
+                        "content": f"<|SPEECH_GENERATION_START|>{audio}",
+                    },
+                ]
 
-            input = self.template.render(messages=messages)[:-10]
-            input_ids = self.model.tokenizer.encode(input, add_bos=True)
-            max_new_tokens = self.max_seq_len - input_ids.shape[-1]
+                input = self.template.render(messages=messages)[:-10]
+                input_ids = self.model.tokenizer.encode(input, add_bos=True)
+                max_new_tokens = self.max_seq_len - input_ids.shape[-1]
 
-            if max_new_tokens <= 0:
-                continue
+                if max_new_tokens <= 0:
+                    continue
 
-            job = ExLlamaV2DynamicJob(
-                input_ids=input_ids,
-                max_new_tokens=max_new_tokens,
-                min_new_tokens=2,
-                gen_settings=self.gen_settings,
-                seed=query.seed,
-                stop_conditions=self.stop_conditions,
-            )
+                job = ExLlamaV2DynamicJob(
+                    input_ids=input_ids,
+                    max_new_tokens=max_new_tokens,
+                    min_new_tokens=2,
+                    gen_settings=self.gen_settings,
+                    seed=query.seed,
+                    stop_conditions=self.stop_conditions,
+                )
 
-            self.model.enqueue(job)
-            output = []
+                self.model.enqueue(job)
+                output = []
 
-            with Progress(
-                f"Generating chunk {index + 1:0{digits}}/{count}", max_new_tokens
-            ) as progress:
-                while self.model.num_remaining_jobs():
-                    for result in self.model.iterate():
-                        text = result.get("text")
-                        progress.advance()
+                with Progress(
+                    f"Generating chunk [bright_cyan]{index + 1:0{digits}}/"
+                    f"{count}[/bright_cyan]",
+                    max_new_tokens,
+                ) as progress:
+                    while self.model.num_remaining_jobs():
+                        for result in self.model.iterate():
+                            text = result.get("text")
+                            progress()
 
-                        if text:
-                            output.append(text)
+                            if text:
+                                output.append(text)
 
-            if not output:
-                continue
+                if not output:
+                    continue
 
-            if query.reuse:
-                audio = "".join(output)
-                transcript = chunk
+                if query.reuse:
+                    audio = "".join(output)
+                    transcript = chunk
 
-            yield output
+                yield output
 
-    def generate(self, query: Query, cancel_event: Event) -> bytes | None:
+        timer(f"Finished with seed {query.seed}")
+
+    def generate(self, query: Query, event: Event) -> bytes | None:
         outputs = []
 
         for output in self(query):
             outputs.extend(output)
 
-            if cancel_event.is_set():
+            if event.is_set():
                 break
 
         if outputs:
             return self.decode(outputs, query.rate, query.format)
 
-    def stream(self, query: Query, cancel_event: Event) -> Generator[bytes, None, None]:
+    def stream(self, query: Query, event: Event) -> Generator[bytes, None, None]:
         for output in self(query):
             yield self.decode(output, query.rate, query.format)
 
-            if cancel_event.is_set():
+            if event.is_set():
                 break

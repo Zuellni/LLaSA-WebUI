@@ -17,6 +17,8 @@ const duration = document.querySelector("#duration")
 const volume = document.querySelector("#volume")
 const download = document.querySelector("#download a")
 
+let generating = false
+
 const formatTime = (time) => {
     const minutes = Math.floor(time / 60).toString().padStart(2, "0")
     const seconds = Math.floor(time % 60).toString().padStart(2, "0")
@@ -28,23 +30,22 @@ const addOption = (node, text, value) => {
     option.textContent = text
     option.value = value
     node.append(option)
+    return option
 }
-
-let running = false
 
 form.addEventListener("submit", async (event) => {
     try {
         event.preventDefault()
         submit.textContent = "sync"
 
-        if (running) {
-            return await fetch("cancel", {
+        if (generating) {
+            return await fetch("interrupt", {
                 method: "POST",
             })
         }
 
-        running = true
-        submit.classList = "running"
+        submit.classList = "generating"
+        generating = true
 
         const formData = new FormData(form)
         const obj = Object.fromEntries(formData)
@@ -55,8 +56,8 @@ form.addEventListener("submit", async (event) => {
             body: JSON.stringify(obj),
         })
 
-        const blob = await response.blob()
-        const url = URL.createObjectURL(blob)
+        const data = await response.blob()
+        const url = URL.createObjectURL(data)
 
         audio.src = url
         audio.play()
@@ -68,8 +69,8 @@ form.addEventListener("submit", async (event) => {
         submit.textContent = "xmark-large"
         console.error(error)
     } finally {
-        running = false
         submit.classList = ""
+        generating = false
     }
 })
 
@@ -128,12 +129,14 @@ audio.addEventListener("loadedmetadata", () => {
 })
 
 audio.addEventListener("timeupdate", () => {
-    if (audio.duration) {
-        const progress = (audio.currentTime / audio.duration)
-        current.textContent = formatTime(audio.currentTime)
-        timeline.setAttribute("max", "1.0")
-        timeline.value = progress
+    if (!audio.duration) {
+        return
     }
+
+    const progress = audio.currentTime / audio.duration
+    current.textContent = formatTime(audio.currentTime)
+    timeline.setAttribute("max", "1.0")
+    timeline.value = progress
 })
 
 play.addEventListener("click", () => {
@@ -151,10 +154,12 @@ play.addEventListener("click", () => {
 })
 
 timeline.addEventListener("input", (event) => {
-    if (audio.duration) {
-        audio.currentTime = event.target.value * audio.duration
-        timeline.setAttribute("max", "1.0")
+    if (!audio.duration) {
+        return
     }
+
+    audio.currentTime = event.target.value * audio.duration
+    timeline.setAttribute("max", "1.0")
 })
 
 volume.addEventListener("input", (event) => {
