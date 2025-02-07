@@ -1,3 +1,4 @@
+import contextlib
 import json
 from io import BytesIO
 from pathlib import Path
@@ -14,7 +15,9 @@ from exllamav2.generator import (
 )
 from fastapi import UploadFile
 from jinja2 import Template
-from xcodec2.modeling_xcodec2 import XCodec2Model
+
+with contextlib.redirect_stdout(None):
+    from xcodec2.modeling_xcodec2 import XCodec2Model
 
 import utils
 from schema import Query
