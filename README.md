@@ -1,18 +1,32 @@
 # LLaSA WebUI
-WebUI for [LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) with an [OpenAI](https://platform.openai.com/docs/guides/text-to-speech) compatible [FastAPI](https://github.com/fastapi/fastapi) server.
+A simple WebUI for [LLaSA](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) using [ExLlamaV2](https://github.com/turboderp-org/exllamav2) with an [OpenAI](https://platform.openai.com/docs/guides/text-to-speech) compatible [FastAPI](https://github.com/fastapi/fastapi) server.
 
 ## Installation
+Clone the rep:
 ```sh
 git clone https://github.com/zuellni/llasa-webui & cd llasa-webui
-mamba create -n tts python=3.12 # you can use conda instead, or create a venv
-pip install torch torchao torchaudio torchvision --index-url https://download.pytorch.org/whl/cu126
-pip install -r requirements.txt
-pip install exllamav2 # jit, you can install a wheel on windows
-pip install flash-attn # optional, needs a wheel on windows
-pip install xcodec2 --no-deps # ignore all dependency errors
 ```
 
-## Downloads
+Create a venv or conda/mamba env:
+```sh
+conda create -n llasa-webui python=3.12
+conda activate llasa-webui
+```
+
+Install dependencies, ignore any `xcodec2` errors:
+```sh
+pip install torch torchao torchaudio torchvision --index-url https://download.pytorch.org/whl/cu126
+pip install -r requirements.txt
+pip install xcodec2 --no-deps
+```
+
+You will likely need wheels for `exllamav2` and `flash-attn` on Windows. The ones below were built with `python=3.12` and `torch=2.6.0+cu126` and should work if you're following this guide:
+```sh
+pip install https://huggingface.co/annuvin/wheels/resolve/main/exllamav2-0.2.7-cp312-cp312-win_amd64.whl?download=true
+pip install https://huggingface.co/annuvin/wheels/resolve/main/flash_attn-2.7.4.post1-cp312-cp312-win_amd64.whl?download=true
+```
+
+## Models
 [LLaSA-1B](https://huggingface.co/HKUSTAudio/Llasa-1B):
 ```sh
 git clone https://huggingface.co/hkustaudio/llasa-1b             model # bf16
@@ -39,6 +53,7 @@ git clone https://huggingface.co/annuvin/xcodec2-fp32            codec # fp32
 ```
 
 ## Usage
+Add `--cache q4 --dtype bf16` for less VRAM usage. You can specify a HuggingFace repo id for the codec, but you will still need to manually clone one of the models above.
 ```sh
 python server.py -m model -c codec -v voices
 ```

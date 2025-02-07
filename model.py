@@ -202,7 +202,7 @@ class Model:
                 input_ids = self.model.tokenizer.encode(input, add_bos=True)
                 max_new_tokens = self.max_seq_len - input_ids.shape[-1]
 
-                if max_new_tokens <= 0:
+                if max_new_tokens < 2:
                     continue
 
                 job = ExLlamaV2DynamicJob(
