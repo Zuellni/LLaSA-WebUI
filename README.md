@@ -20,11 +20,18 @@ pip install -r requirements.txt
 pip install xcodec2 --no-deps
 ```
 
-You will likely need wheels for `exllamav2` and `flash-attn` on Windows. The ones below were built with `python=3.12` and `torch=2.6.0+cu126` and should work if you're following this guide:
+Install `exllamav2` and (optionally) `flash-attn`:
 ```sh
-pip install https://huggingface.co/annuvin/wheels/resolve/main/exllamav2-0.2.7-cp312-cp312-win_amd64.whl?download=true
+pip install exllamav2
+pip install flash-attn
+```
+
+You will likely need wheels for them on Windows. I built these with `python=3.12` and `torch=2.6.0+cu126` and they *should* "just work" if you're following this guide:
+```sh
+pip install https://huggingface.co/annuvin/wheels/resolve/main/exllamav2-0.2.8-cp312-cp312-win_amd64.whl?download=true
 pip install https://huggingface.co/annuvin/wheels/resolve/main/flash_attn-2.7.4.post1-cp312-cp312-win_amd64.whl?download=true
 ```
+Naturally, you shouldn't trust random wheels on the internet so feel free to compile them yourself.
 
 ## Models
 LLaSA-1B:
@@ -53,10 +60,10 @@ git clone https://huggingface.co/annuvin/xcodec2-fp32            codec # fp32
 ```
 
 ## Usage
-Add `--cache q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net). You can specify a HuggingFace repo id for the codec, but you will still need to manually clone one of the LLaSA models above.
 ```sh
 python server.py -m model -c codec -v voices
 ```
+Add `--cache q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net). You can specify a HuggingFace repo id for the codec, but you will still need to manually clone one of the LLaSA models above.
 
 ## Preview
 ![Preview](assets/preview.png)
