@@ -15,7 +15,7 @@ conda activate llasa-webui
 
 Install dependencies, ignore any `xcodec2` errors:
 ```sh
-pip install torch torchao torchaudio torchvision --index-url https://download.pytorch.org/whl/cu126
+pip install "torch==2.6.0" torchao torchaudio torchvision --index-url https://download.pytorch.org/whl/cu126
 pip install -r requirements.txt
 pip install xcodec2 --no-deps
 ```
