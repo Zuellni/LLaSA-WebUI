@@ -22,8 +22,8 @@ pip install xcodec2 --no-deps
 
 Install wheels for [`exllamav2`](https://github.com/turboderp-org/exllamav2/releases/latest) and [`flash-attn`](https://github.com/kingbri1/flash-attention/releases/latest):
 ```sh
-pip install link-to-exllamav2-wheel-goes-here.whl
-pip install link-to-flash-attn-wheel-goes-here.whl
+pip install link-to-exllamav2-wheel-goes-here+cu124.torch2.6.0.whl
+pip install link-to-flash-attn-wheel-goes-here+cu124.torch2.6.0.whl
 ```
 
 ## Models
