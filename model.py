@@ -122,7 +122,8 @@ class Model:
             text = utils.process_text(text)
 
             file.write_text(
-                json.dumps({"audio": audio, "text": text}), encoding="utf-8"
+                json.dumps({"audio": audio, "text": text}, ensure_ascii=False),
+                encoding="utf-8",
             )
 
         data = json.loads(file.read_text(encoding="utf-8"))
@@ -142,7 +143,8 @@ class Model:
             text = utils.process_text(text)
 
             file.write_text(
-                json.dumps({"audio": audio, "text": text}), encoding="utf-8"
+                json.dumps({"audio": audio, "text": text}, ensure_ascii=False),
+                encoding="utf-8",
             )
 
     @autocast
