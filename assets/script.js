@@ -39,7 +39,7 @@ form.addEventListener("submit", async (event) => {
         submit.textContent = "sync"
 
         if (generating) {
-            return await fetch("interrupt", {
+            return await fetch("abort", {
                 method: "POST",
             })
         }

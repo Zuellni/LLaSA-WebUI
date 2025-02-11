@@ -165,7 +165,9 @@ class Model:
         torchaudio.save(buffer, output, output_rate, format=format)
         return buffer.getvalue()
 
-    def __call__(self, query: Query) -> Generator[list[str], None, None]:
+    def __call__(
+        self, query: Query, abort_event: Event
+    ) -> Generator[list[str], None, None]:
         self.gen_settings.temperature = query.temperature
         self.gen_settings.token_repetition_penalty = query.penalty
         self.gen_settings.top_k = query.top_k
@@ -202,8 +204,8 @@ class Model:
                     },
                 ]
 
-                input = self.template.render(messages=messages)[:-10]
-                input_ids = self.model.tokenizer.encode(input, add_bos=True)
+                input = self.template.render(messages=messages)
+                input_ids = self.model.tokenizer.encode(input, add_bos=True)[:, :-1]
                 max_new_tokens = self.max_seq_len - input_ids.shape[-1]
 
                 if max_new_tokens < 2:
@@ -235,6 +237,10 @@ class Model:
                                 output.append(text)
                                 tokens += 1
 
+                        if abort_event and abort_event.is_set():
+                            self.model.clear_queue()
+                            return
+
                 if not output:
                     continue
 
@@ -244,23 +250,19 @@ class Model:
 
                 yield output
 
+            self.model.clear_queue()
+
         timer(f"Generated {tokens / 50:.2f} seconds of audio with seed {query.seed}")
 
-    def generate(self, query: Query, event: Event) -> bytes | None:
+    def generate(self, query: Query, abort_event: Event) -> bytes | None:
         outputs = []
 
-        for output in self(query):
+        for output in self(query, abort_event):
             outputs.extend(output)
-
-            if event.is_set():
-                break
 
         if outputs:
             return self.decode(outputs, query.rate, query.format)
 
-    def stream(self, query: Query, event: Event) -> Generator[bytes, None, None]:
-        for output in self(query):
+    def stream(self, query: Query, abort_event: Event) -> Generator[bytes, None, None]:
+        for output in self(query, abort_event):
             yield self.decode(output, query.rate, query.format)
-
-            if event.is_set():
-                break
