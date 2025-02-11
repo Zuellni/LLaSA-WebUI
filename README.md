@@ -20,36 +20,31 @@ pip install -r requirements.txt
 pip install xcodec2 --no-deps
 ```
 
-Install wheels for [`exllamav2`](https://github.com/turboderp-org/exllamav2/releases/latest) and [`flash-attn`](https://github.com/kingbri1/flash-attention/releases/latest):
-```sh
-pip install link-to-exllamav2-wheel-goes-here+cu124.torch2.6.0.whl
-pip install link-to-flash-attn-wheel-goes-here+cu124.torch2.6.0.whl
-```
-
 ## Models
 LLaSA-1B:
 ```sh
-git clone https://huggingface.co/hkustaudio/llasa-1b             model # bf16
+git clone https://huggingface.co/hkustaudio/llasa-1b              model # bf16
+git clone https://huggingface.co/hkustaudio/llasa-1b-multilingual model # bf16
 ```
 
 LLaSA-3B:
 ```sh
-git clone https://huggingface.co/annuvin/llasa-3b-8.0bpw-h8-exl2 model # 8bpw
-git clone https://huggingface.co/hkustaudio/llasa-3b             model # bf16
+git clone https://huggingface.co/annuvin/llasa-3b-8.0bpw-h8-exl2  model # 8bpw
+git clone https://huggingface.co/hkustaudio/llasa-3b              model # bf16
 ```
 
 LLaSA-8B:
 ```sh
-git clone https://huggingface.co/annuvin/llasa-8b-4.0bpw-exl2    model # 4bpw
-git clone https://huggingface.co/annuvin/llasa-8b-6.0bpw-exl2    model # 6bpw
-git clone https://huggingface.co/annuvin/llasa-8b-8.0bpw-h8-exl2 model # 8bpw
-git clone https://huggingface.co/hkustaudio/llasa-8b             model # bf16
+git clone https://huggingface.co/annuvin/llasa-8b-4.0bpw-exl2     model # 4bpw
+git clone https://huggingface.co/annuvin/llasa-8b-6.0bpw-exl2     model # 6bpw
+git clone https://huggingface.co/annuvin/llasa-8b-8.0bpw-h8-exl2  model # 8bpw
+git clone https://huggingface.co/hkustaudio/llasa-8b              model # bf16
 ```
 
 X-Codec-2:
 ```sh
-git clone https://huggingface.co/annuvin/xcodec2-bf16            codec # bf16
-git clone https://huggingface.co/annuvin/xcodec2-fp32            codec # fp32
+git clone https://huggingface.co/annuvin/xcodec2-bf16             codec # bf16
+git clone https://huggingface.co/annuvin/xcodec2-fp32             codec # fp32
 ```
 
 ## Usage

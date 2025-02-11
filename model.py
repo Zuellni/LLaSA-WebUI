@@ -158,11 +158,11 @@ class Model:
         input = torch.tensor([[input]]).to(self.device)
 
         output = self.codec.decode_code(input)
-        output = output[0, 0, :].unsqueeze(0)
+        output = output[0, 0, :].unsqueeze(0).float().cpu()
         output = utils.process_audio(output, self.sample_rate, output_rate)
 
         buffer = BytesIO()
-        torchaudio.save(buffer, output.cpu(), output_rate, format=format)
+        torchaudio.save(buffer, output, output_rate, format=format)
         return buffer.getvalue()
 
     def __call__(self, query: Query) -> Generator[list[str], None, None]:
@@ -182,6 +182,7 @@ class Model:
         chunks = utils.split_text(text, query.chunk)
         count = len(chunks)
         digits = len(str(count))
+        tokens = 0
 
         with Timer() as timer:
             for index, chunk in enumerate(chunks):
@@ -232,6 +233,7 @@ class Model:
 
                             if text:
                                 output.append(text)
+                                tokens += 1
 
                 if not output:
                     continue
@@ -242,7 +244,7 @@ class Model:
 
                 yield output
 
-        timer(f"Finished with seed {query.seed}")
+        timer(f"Generated {tokens / 50:.2f} seconds of audio with seed {query.seed}")
 
     def generate(self, query: Query, event: Event) -> bytes | None:
         outputs = []
