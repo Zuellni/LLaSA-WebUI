@@ -5,7 +5,7 @@ const textarea = document.querySelector("textarea")
 const format = document.querySelector("#format")
 const voice = document.querySelector("#voice")
 const picker = document.querySelector("#picker i")
-const upload = document.querySelector("#upload")
+const cache = document.querySelector("#cache")
 
 const player = document.querySelector("#player")
 const submit = document.querySelector("#submit i")
@@ -79,20 +79,19 @@ textarea.addEventListener("input", () => {
     textarea.style.height = `${textarea.scrollHeight}px`
 })
 
-upload.addEventListener("change", async (event) => {
+cache.addEventListener("change", async (event) => {
     try {
         const files = event.target.files
         picker.textContent = "folder"
 
-        if (!files || !textarea.value) {
+        if (!files) {
             return
         }
 
         const formData = new FormData()
-        formData.append("audio", files[0])
-        formData.append("text", textarea.value)
+        formData.append("file", files[0])
 
-        const response = await fetch("upload", {
+        const response = await fetch("cache", {
             method: "POST",
             body: formData,
         })

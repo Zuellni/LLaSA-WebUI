@@ -26,10 +26,10 @@
                 <option value="{{ voice }}">{{ voice }}</option>
                 {% endfor %}
             </select>
-            <label for="upload" id="picker">
+            <label for="cache" id="picker">
                 <i>folder</i>
             </label>
-            <input accept="{% for format in settings.formats %}.{{ format }}, {% endfor %}" id="upload" type="file">
+            <input accept="{% for format in settings.formats %}.{{ format }}, {% endfor %}" id="cache" type="file">
         </fieldset>
 
         <label for="chunk">Chunk</label>

@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from threading import Event, Lock
-from typing import Annotated, Any, Generator
+from typing import Any, Generator
 
 import uvicorn
-from fastapi import FastAPI, Form, Request, UploadFile
+from fastapi import FastAPI, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,25 +18,33 @@ from schema import Query
 parser = ArgumentParser()
 parser.add_argument("--host", default="127.0.0.1")
 parser.add_argument("--port", type=int, default=8020)
-parser.add_argument("-m", "--model-dir", type=Path, required=True)
-parser.add_argument("-c", "--codec-dir", type=Path, required=True)
-parser.add_argument("-v", "--voice-dir", type=Path, default="voices")
+parser.add_argument("-m", "--model-path", type=Path, required=True)
+parser.add_argument("-c", "--codec-path", default="hkustaudio/xcodec2")
+parser.add_argument("-w", "--whisper-path", default="openai/whisper-large-v3-turbo")
+parser.add_argument("-v", "--voice-path", type=Path, default="voices")
 parser.add_argument("--cache", choices=["q4", "q6", "q8", "fp16"], default="fp16")
 parser.add_argument("--device", default="cuda")
 parser.add_argument("--dtype", choices=["fp16", "bf16", "fp32"], default="fp32")
 parser.add_argument("--max-seq-len", type=int, default=2048)
 parser.add_argument("--sample-rate", type=int, default=16000)
+parser.add_argument("--voice_loudness", type=float, default=-20.0)
+parser.add_argument("--voice_max_len", type=int, default=15)
+parser.add_argument("--rebuild", action="store_true")
 args = parser.parse_args()
 
 model = Model(
-    model_dir=args.model_dir,
-    codec_dir=args.codec_dir,
-    voice_dir=args.voice_dir,
+    model_path=args.model_path,
+    codec_path=args.codec_path,
+    whisper_path=args.whisper_path,
+    voice_path=args.voice_path,
     cache=args.cache,
     device=args.device,
     dtype=args.dtype,
     max_seq_len=args.max_seq_len,
     sample_rate=args.sample_rate,
+    voice_loudness=args.voice_loudness,
+    voice_max_len=args.voice_max_len,
+    rebuild=args.rebuild,
 )
 
 directory = Path(__file__).parent / "assets"
@@ -68,6 +76,12 @@ def abort() -> None:
     abort_event.set()
 
 
+@app.post("/cache")
+async def cache(file: UploadFile) -> list[str]:
+    await model.cache(file)
+    return sorted(model.voices)
+
+
 @app.get("/settings")
 def settings() -> dict[str, Any]:
     settings = {
@@ -79,14 +93,6 @@ def settings() -> dict[str, Any]:
     settings["formats"] = Query.formats()
     settings["voices"] = sorted(model.voices)
     return settings
-
-
-@app.post("/upload")
-async def upload(
-    audio: UploadFile, text: Annotated[str, Form(min_length=1)]
-) -> list[str]:
-    await model.cache_audio(audio, text)
-    return sorted(model.voices)
 
 
 @app.post("/generate")

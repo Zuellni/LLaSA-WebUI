@@ -1,12 +1,20 @@
 import contextlib
+import gc
 import json
 from io import BytesIO
 from pathlib import Path
 from threading import Event
-from typing import Any, BinaryIO, Callable, Generator
+from typing import Any, Callable, Generator
+from warnings import simplefilter
+
+simplefilter("ignore")
 
 import torch
 import torchaudio
+import transformers
+
+transformers.logging.set_verbosity_error()
+
 from exllamav2 import ExLlamaV2, ExLlamaV2Config, ExLlamaV2Tokenizer, attn
 from exllamav2.generator import (
     ExLlamaV2DynamicGenerator,
@@ -15,6 +23,7 @@ from exllamav2.generator import (
 )
 from fastapi import UploadFile
 from jinja2 import Template
+from transformers import Pipeline, pipeline
 
 with contextlib.redirect_stdout(None):
     from xcodec2.modeling_xcodec2 import XCodec2Model
@@ -35,25 +44,33 @@ class Model:
 
     def __init__(
         self,
-        model_dir: Path,
-        codec_dir: Path,
-        voice_dir: Path,
+        model_path: Path,
+        codec_path: Path | str,
+        whisper_path: Path | str,
+        voice_path: Path,
         cache: str = "fp16",
         device: str = "cuda",
         dtype: str = "fp32",
         max_seq_len: int = 2048,
         sample_rate: int = 16000,
+        voice_loudness: float = -20.0,
+        voice_max_len: int = 15,
+        rebuild: bool = False,
     ) -> None:
         self.device = device
         self.dtype = utils.dtype(dtype)
         self.max_seq_len = max_seq_len
         self.sample_rate = sample_rate
+        self.voice_loudness = voice_loudness
+        self.voice_max_len = voice_max_len
+        self.rebuild = rebuild
 
-        self.model = self.load_model(model_dir, cache)
-        self.codec = self.load_codec(codec_dir)
+        self.model = self.load_model(model_path, cache)
+        self.codec = self.load_codec(codec_path)
+        self.whisper = self.load_whisper(whisper_path)
 
-        self.voice_dir = voice_dir
-        self.voice_cache = voice_dir / ".cache"
+        self.voice_path = voice_path
+        self.voice_cache = voice_path / ".cache"
         self.voice_cache.mkdir(parents=True, exist_ok=True)
         self.voices = self.load_voices()
 
@@ -81,7 +98,7 @@ class Model:
         paged = attn.has_flash_attn
 
         with Progress("Loading model", len(model.modules) + 1) as progress:
-            model.load_autosplit(cache, callback=progress())
+            model.load_autosplit(cache, callback=progress)
 
         with Progress("Loading tokenizer"):
             tokenizer = ExLlamaV2Tokenizer(config, lazy_init=True)
@@ -93,14 +110,28 @@ class Model:
             codec = XCodec2Model.from_pretrained(path)
             return codec.eval().to(self.device, self.dtype)
 
+    def load_whisper(self, path: Path | str) -> Pipeline:
+        with Progress("Loading whisper"):
+            whisper = pipeline(
+                task="automatic-speech-recognition",
+                model=path,
+                device=self.device,
+                torch_dtype=self.dtype,
+            )
+
+            whisper.model.cpu()
+            gc.collect()
+            torch.cuda.empty_cache()
+            return whisper
+
     def load_voices(self) -> dict[str, dict[str, Any]]:
         suffixes = [f".{s}" for s in Query.formats()]
-        files = [f for f in self.voice_dir.glob("*.*") if f.suffix in suffixes]
+        files = [f for f in self.voice_path.glob("*.*") if f.suffix in suffixes]
         voices = {}
 
         with Progress("Caching voices", len(files)) as progress:
             for file in files:
-                self.cache_path(file)
+                self.encode(file, rebuild=self.rebuild)
                 progress()
 
         for file in self.voice_cache.glob("*.json"):
@@ -110,50 +141,55 @@ class Model:
 
         return voices
 
-    async def cache_audio(
-        self, audio: UploadFile, text: str, rebuild: bool = True
-    ) -> None:
-        name = Path(audio.filename).stem.lower()
-        file = self.voice_cache / f"{name}.json"
-
-        if not file.exists() or rebuild:
-            buffer = await audio.read()
-            buffer = BytesIO(buffer)
-            audio = self.encode(buffer)
-            text = utils.process_text(text)
-
-            file.write_text(
-                json.dumps({"audio": audio, "text": text}, ensure_ascii=False),
-                encoding="utf-8",
-            )
-
-        data = json.loads(file.read_text(encoding="utf-8"))
-        self.voices[name] = {"audio": data["audio"], "text": data["text"]}
-
-    def cache_path(self, path: Path, rebuild: bool = False) -> None:
-        name = path.stem.lower()
-        file = self.voice_cache / f"{name}.json"
-
-        if not file.exists() or rebuild:
-            text = self.voice_dir / f"{name}.txt"
-
-            if not text.exists():
-                return
-
-            audio = self.encode(path)
-            text = utils.process_text(text)
-
-            file.write_text(
-                json.dumps({"audio": audio, "text": text}, ensure_ascii=False),
-                encoding="utf-8",
-            )
+    async def cache(self, file: UploadFile) -> None:
+        buffer = await file.read()
+        buffer = BytesIO(buffer)
+        self.encode(buffer, file.filename, rebuild=True)
 
     @autocast
-    def encode(self, path: BinaryIO | Path) -> list[int]:
-        audio, input_rate = torchaudio.load(path)
-        audio = utils.process_audio(audio, input_rate, self.sample_rate)
+    def encode(
+        self,
+        audio: BytesIO | Path,
+        name: str = "",
+        text: str = "",
+        rebuild: bool = False,
+    ) -> None:
+        name = Path(name if name else audio).stem.lower()
+        file = self.voice_cache / f"{name}.json"
+
+        if file.exists() and not rebuild:
+            return
+
+        audio, input_rate = torchaudio.load(audio)
+
+        audio = utils.process_audio(
+            audio=audio,
+            input_rate=input_rate,
+            output_rate=self.sample_rate,
+            max_len=self.voice_max_len,
+            output_loudness=self.voice_loudness,
+        )
+
+        if not text:
+            text = self.voice_path / f"{name}.txt"
+
+            if not text.exists():
+                self.whisper.model.to(self.device, self.dtype)
+                text = self.whisper(audio[0].numpy())["text"]
+                self.whisper.model.cpu()
+
+        text = utils.process_text(text)
         audio = self.codec.encode_code(audio, self.sample_rate)
-        return audio[0, 0, :].tolist()
+        audio = audio[0, 0, :].tolist()
+
+        file.write_text(
+            json.dumps({"audio": audio, "text": text}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        gc.collect()
+        torch.cuda.empty_cache()
+        self.voices[name] = {"audio": audio, "text": text}
 
     @autocast
     def decode(self, input: list[str], output_rate: int, format: str) -> bytes:

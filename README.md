@@ -42,17 +42,11 @@ git clone https://huggingface.co/annuvin/llasa-8b-8.0bpw-h8-exl2  model # 8bpw
 git clone https://huggingface.co/hkustaudio/llasa-8b              model # bf16
 ```
 
-X-Codec-2:
-```sh
-git clone https://huggingface.co/annuvin/xcodec2-bf16             codec # bf16
-git clone https://huggingface.co/annuvin/xcodec2-fp32             codec # fp32
-```
-
 ## Usage
 ```sh
-python server.py -m model -c codec -v voices
+python server.py -m model
 ```
-Add `--cache q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net). You can specify a HuggingFace repo id for `xcodec2`, but you will still need to download one of the LLaSA models above.
+Add `--cache q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net).
 
 ## Preview
 ![Preview](assets/preview.png)
