@@ -1,7 +1,8 @@
 import random
-from typing import Annotated, Literal, get_args
+from typing import Annotated, Any, Literal, get_args
 
 from pydantic import BaseModel, Field, field_validator
+from pydantic_core import PydanticUndefined
 
 
 class Query(BaseModel):
@@ -30,6 +31,14 @@ class Query(BaseModel):
     @field_validator("seed", mode="after")
     def validate_seed(cls, value: int) -> int:
         return random.randint(0, 2**64 - 1) if value < 0 else value
+
+    @staticmethod
+    def defaults() -> dict[str, Any]:
+        return {
+            k: v.default
+            for k, v in __class__.model_fields.items()
+            if v.default is not PydanticUndefined
+        }
 
     @staticmethod
     def formats() -> list[str]:

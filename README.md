@@ -44,9 +44,9 @@ git clone https://huggingface.co/hkustaudio/llasa-8b              model # bf16
 
 ## Usage
 ```sh
-python server.py -m model
+python server.py --model model
 ```
-Add `--cache q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net).
+Add `--cache-mode q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net).
 
 ## Preview
 ![Preview](assets/preview.png)
