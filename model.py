@@ -75,6 +75,7 @@ class Model:
     def load_model(self, path: Path, cache: str) -> ExLlamaV2DynamicGenerator:
         config = ExLlamaV2Config(str(path))
         config.max_seq_len = self.max_seq_len
+
         model = ExLlamaV2(config, lazy_load=True)
         cache = utils.cache(cache)(model, lazy=True)
         paged = attn.has_flash_attn

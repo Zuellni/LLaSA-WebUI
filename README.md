@@ -10,7 +10,7 @@ cd llasa-webui
 
 Create a conda/mamba/python env:
 ```sh
-conda create -n llasa-webui python
+conda create -n llasa-webui python=3.12
 conda activate llasa-webui
 ```
 

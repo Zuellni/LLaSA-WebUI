@@ -71,7 +71,7 @@ class Timer:
         )
 
 
-def cache(cache: str) -> type[ExLlamaV2CacheBase]:
+def cache(cache: str) -> ExLlamaV2CacheBase:
     match cache:
         case "q4":
             return ExLlamaV2Cache_Q4

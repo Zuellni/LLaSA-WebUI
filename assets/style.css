@@ -19,17 +19,17 @@
 }
 
 :root {
-    --main: #F3F3F3;
-    --input: #E0E0E0;
-    --shadow: #A7A7A7;
-    --back: #BEE2F6;
-    --accent: #50FEFE;
-    --color: #2C4C73;
-    --hover: #ECCA3C;
+    --main: #FFF;
+    --input: #EEE;
+    --shadow: #AAA;
+    --back: #BDF;
+    --accent: #4EF;
+    --color: #357;
+    --hover: #EC3;
 }
 
 * {
-    font: normal 1rem Text, sans-serif;
+    font: 1rem Text;
     appearance: none;
     border: none;
     box-sizing: border-box;
@@ -39,17 +39,12 @@
     padding: 0;
 }
 
-html,
-body {
+html {
     display: grid;
     align-items: center;
     justify-items: center;
-    width: 100%;
     height: 100%;
-    background:
-        radial-gradient(ellipse at top,
-            var(--back) 50%,
-            var(--main));
+    background: var(--back);
 }
 
 form {
@@ -141,6 +136,7 @@ input {
     }
 
     &[type=range] {
+        background: none;
         cursor: pointer;
 
         &::-webkit-slider-runnable-track,
