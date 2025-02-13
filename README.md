@@ -19,6 +19,7 @@ Install dependencies, ignore any `xcodec2` errors:
 pip install -r requirements.txt
 pip install xcodec2 --no-deps
 ```
+If you want to use `torch+cu126`, keep in mind that you'll need to compile `exllamav2` and (optionally) `flash-attn`, and for `python=3.13` you may need to compile `sentencepiece`.
 
 ## Models
 LLaSA-1B:
