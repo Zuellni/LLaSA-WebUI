@@ -10,7 +10,7 @@ class Query(BaseModel):
     voice: Annotated[str, Field(default="", to_lower=True)]
 
     chunk: Annotated[int, Field(default=300, ge=1)]
-    format: Annotated[Literal["flac", "mp3", "ogg", "wav"], Field(default="mp3")]
+    format: Annotated[Literal["flac", "mp3", "ogg", "wav"], Field(default="wav")]
     rate: Annotated[int, Field(default=16000)]
 
     reuse: Annotated[bool, Field(default=False)]
