@@ -24,8 +24,7 @@ parser.add_argument("--cache-mode", choices=["q4", "q6", "q8", "fp16"], default=
 parser.add_argument("--max-seq-len", type=int, default=2048)
 parser.add_argument("--device", default="cuda")
 parser.add_argument("--dtype", choices=["fp16", "bf16", "fp32"], default="fp32")
-parser.add_argument("--loudness", type=float, default=-20.0)
-parser.add_argument("--max-len", type=int, default=10)
+parser.add_argument("--max-voice-len", type=int, default=10)
 parser.add_argument("--rebuild-cache", action="store_true")
 parser.add_argument("--sample-rate", type=int, default=16000)
 args = parser.parse_args()
@@ -39,8 +38,7 @@ model = Model(
     max_seq_len=args.max_seq_len,
     device=args.device,
     dtype=args.dtype,
-    loudness=args.loudness,
-    max_len=args.max_len,
+    max_voice_len=args.max_voice_len,
     rebuild_cache=args.rebuild_cache,
     sample_rate=args.sample_rate,
 )

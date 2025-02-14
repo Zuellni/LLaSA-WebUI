@@ -52,8 +52,7 @@ class Model:
         max_seq_len: int = 2048,
         device: str = "cuda",
         dtype: str = "fp32",
-        loudness: float = -20.0,
-        max_len: int = 10,
+        max_voice_len: int = 10,
         rebuild_cache: bool = False,
         sample_rate: int = 16000,
     ) -> None:
@@ -63,8 +62,7 @@ class Model:
         self.device = device
         self.dtype = utils.dtype(dtype)
 
-        self.loudness = loudness
-        self.max_len = max_len
+        self.max_voice_len = max_voice_len
         self.rebuild_cache = rebuild_cache
         self.sample_rate = sample_rate
 
@@ -162,14 +160,13 @@ class Model:
         if file.exists() and not rebuild_cache:
             return name, None
 
-        audio, input_rate = torchaudio.load(audio)
+        audio, sample_rate = torchaudio.load(audio)
 
         audio = utils.process_audio(
             audio=audio,
-            input_rate=input_rate,
+            input_rate=sample_rate,
             output_rate=self.sample_rate,
-            max_len=self.max_len,
-            output_loudness=self.loudness,
+            max_len=self.max_voice_len,
         )
 
         if not text:
@@ -191,22 +188,16 @@ class Model:
         return name, {"audio": audio, "text": text}
 
     @autocast
-    def decode(self, input: list[str], output_rate: int, format: str) -> bytes:
+    def decode(self, input: list[str], sample_rate: int, format: str) -> bytes:
         input = [int(i[4:-2]) for i in input if i]
         input = torch.tensor([[input]]).to(self.device)
 
         output = self.codec.decode_code(input)
         output = output[0, 0, :].unsqueeze(0).float().cpu()
-
-        output = utils.process_audio(
-            audio=output,
-            input_rate=self.sample_rate,
-            output_rate=output_rate,
-            output_loudness=self.loudness,
-        )
+        output = utils.process_audio(output, self.sample_rate, sample_rate)
 
         buffer = BytesIO()
-        torchaudio.save(buffer, output, output_rate, format=format)
+        torchaudio.save(buffer, output, sample_rate, format=format)
         return buffer.getvalue()
 
     def __call__(

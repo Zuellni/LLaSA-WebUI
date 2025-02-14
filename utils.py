@@ -94,11 +94,7 @@ def dtype(dtype: str) -> torch.dtype:
 
 
 def process_audio(
-    audio: torch.Tensor,
-    input_rate: int,
-    output_rate: int,
-    max_len: int = 0,
-    output_loudness: float = -20.0,
+    audio: torch.Tensor, input_rate: int, output_rate: int, max_len: int = 0
 ) -> torch.Tensor:
     if audio.shape[0] > 1:
         audio = torch.mean(audio, dim=0, keepdim=True)
@@ -109,9 +105,7 @@ def process_audio(
     if input_rate != output_rate:
         audio = F.resample(audio, input_rate, output_rate)
 
-    loudness = F.loudness(audio, output_rate)
-    gain = torch.pow(10.0, (output_loudness - loudness) / 20.0)
-    return audio * gain
+    return audio
 
 
 def clean_text(text: list[str] | str) -> str:
