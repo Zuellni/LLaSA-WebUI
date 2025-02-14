@@ -21,7 +21,7 @@ from exllamav2.generator import (
     ExLlamaV2Sampler,
 )
 from fastapi import UploadFile
-from huggingface_hub import hf_hub_download
+from huggingface_hub import snapshot_download
 from jinja2 import Template
 from transformers import Pipeline, pipeline
 
@@ -94,7 +94,7 @@ class Model:
 
     def load_model(self, path: str) -> ExLlamaV2DynamicGenerator:
         if not Path(path).is_dir():
-            path = hf_hub_download(path)
+            path = snapshot_download(path)
 
         config = ExLlamaV2Config(path)
         config.max_seq_len = self.max_seq_len
