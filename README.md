@@ -21,32 +21,11 @@ pip install xcodec2 --no-deps
 ```
 If you want to use `torch+cu126`, keep in mind that you'll need to compile `exllamav2` and (optionally) `flash-attn`, and for `python=3.13` you may need to compile `sentencepiece`.
 
-## Models
-LLaSA-1B:
-```sh
-git clone https://huggingface.co/hkustaudio/llasa-1b              model # bf16
-git clone https://huggingface.co/hkustaudio/llasa-1b-multilingual model # bf16
-```
-
-LLaSA-3B:
-```sh
-git clone https://huggingface.co/annuvin/llasa-3b-8.0bpw-h8-exl2  model # 8bpw
-git clone https://huggingface.co/hkustaudio/llasa-3b              model # bf16
-```
-
-LLaSA-8B:
-```sh
-git clone https://huggingface.co/annuvin/llasa-8b-4.0bpw-exl2     model # 4bpw
-git clone https://huggingface.co/annuvin/llasa-8b-6.0bpw-exl2     model # 6bpw
-git clone https://huggingface.co/annuvin/llasa-8b-8.0bpw-h8-exl2  model # 8bpw
-git clone https://huggingface.co/hkustaudio/llasa-8b              model # bf16
-```
-
 ## Usage
 ```sh
-python server.py --model model
+python server.py --model <path or repo id>
 ```
-Add `--cache-mode q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net).
+You can use the HF [models](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) or EXL2 quants from [here](https://huggingface.co/collections/Annuvin/llasa-67aeef30ce5e4da91124027c). Add `--cache-mode q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net).
 
 ## Preview
 ![Preview](assets/preview.png)
