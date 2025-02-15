@@ -165,7 +165,7 @@ class Model:
             text = self.voice_dir / f"{name}.txt"
 
             if not text.exists():
-                text = self.whisper(audio[0].numpy())["text"]
+                text = self.whisper(audio[0].cpu().numpy())["text"]
 
         text = utils.process_text(text)
 
