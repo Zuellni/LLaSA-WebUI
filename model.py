@@ -3,7 +3,7 @@ import json
 from io import BytesIO
 from pathlib import Path
 from threading import Event
-from typing import Any, Callable, Generator
+from typing import Any, Generator
 from warnings import simplefilter
 
 simplefilter("ignore")
@@ -34,33 +34,25 @@ from utils import Progress, Timer
 
 
 class Model:
-    @staticmethod
-    def autocast(func) -> Callable[..., Any]:
-        def wrapper(self, *args, **kwargs) -> Any:
-            with torch.autocast(self.device, self.dtype), torch.inference_mode():
-                return func(self, *args, **kwargs)
-
-        return wrapper
-
     def __init__(
         self,
         model: str,
         codec: str,
         whisper: str,
         voices: Path,
-        cache_mode: str = "fp16",
+        cache: str = "fp16",
         max_seq_len: int = 2048,
         device: str = "cuda",
         dtype: str = "fp32",
-        max_voice_len: int = 10,
+        max_voice_len: int = 15,
         rebuild_cache: bool = False,
         sample_rate: int = 16000,
     ) -> None:
-        self.cache_mode = utils.cache(cache_mode)
+        self.cache = utils.get_cache(cache)
         self.max_seq_len = max_seq_len
 
         self.device = device
-        self.dtype = utils.dtype(dtype)
+        self.dtype = utils.get_dtype(dtype)
 
         self.max_voice_len = max_voice_len
         self.rebuild_cache = rebuild_cache
@@ -84,7 +76,7 @@ class Model:
         last = self.model.tokenizer.single_id("<|s_65535|>")
 
         self.stop_conditions = [eos]
-        self.gen_settings = ExLlamaV2Sampler.Settings()
+        self.gen_settings = ExLlamaV2Sampler.Settings.greedy()
         self.gen_settings.allow_tokens(
             tokenizer=self.model.tokenizer,
             tokens=[eos] + list(range(first, last + 1)),
@@ -98,7 +90,7 @@ class Model:
         config.max_seq_len = self.max_seq_len
 
         model = ExLlamaV2(config, lazy_load=True)
-        cache = self.cache_mode(model, lazy=True)
+        cache = self.cache(model, lazy=True)
         paged = attn.has_flash_attn
 
         with Progress("Loading model", len(model.modules) + 1) as progress:
@@ -139,14 +131,13 @@ class Model:
 
         return voices
 
-    async def cache(self, file: UploadFile) -> list[str]:
+    async def cache_voice(self, file: UploadFile) -> list[str]:
         buffer = await file.read()
         buffer = BytesIO(buffer)
         name, data = self.encode(buffer, file.filename, rebuild_cache=True)
         self.voices[name] = data
         return sorted(self.voices)
 
-    @autocast
     def encode(
         self,
         audio: BytesIO | Path,
@@ -161,6 +152,7 @@ class Model:
             return name, None
 
         audio, sample_rate = torchaudio.load(audio)
+        audio = audio.to(self.device)
 
         audio = utils.process_audio(
             audio=audio,
@@ -176,8 +168,10 @@ class Model:
                 text = self.whisper(audio[0].numpy())["text"]
 
         text = utils.process_text(text)
-        audio = self.codec.encode_code(audio, self.sample_rate)
-        audio = audio[0, 0, :].tolist()
+
+        with torch.autocast(self.device, self.dtype), torch.inference_mode():
+            audio = self.codec.encode_code(audio, self.sample_rate)
+            audio = audio[0, 0, :].tolist()
 
         file.write_text(
             json.dumps({"audio": audio, "text": text}, ensure_ascii=False),
@@ -187,18 +181,27 @@ class Model:
         torch.cuda.empty_cache()
         return name, {"audio": audio, "text": text}
 
-    @autocast
-    def decode(self, input: list[str], sample_rate: int, format: str) -> bytes:
-        input = [int(i[4:-2]) for i in input if i]
-        input = torch.tensor([[input]]).to(self.device)
+    def decode(self, audio: list[str]) -> torch.Tensor:
+        audio = [int(a[4:-2]) for a in audio if a]
+        audio = torch.tensor([[audio]], device=self.device)
 
-        output = self.codec.decode_code(input)
-        output = output[0, 0, :].unsqueeze(0).float().cpu()
-        output = utils.process_audio(output, self.sample_rate, sample_rate)
+        with torch.autocast(self.device, self.dtype), torch.inference_mode():
+            audio = self.codec.decode_code(audio)
+            return audio[0, 0, :].unsqueeze(0)
 
+    def get_bytes(self, audio: torch.Tensor, sample_rate: int, format: str) -> bytes:
+        audio = utils.process_audio(audio, self.sample_rate, sample_rate)
         buffer = BytesIO()
-        torchaudio.save(buffer, output, sample_rate, format=format)
+        torchaudio.save(buffer, audio.cpu(), sample_rate, format=format)
         return buffer.getvalue()
+
+    def get_voice(self, voice: str) -> tuple[str, str]:
+        voice = self.voices.get(voice.lower(), {})
+        audio = voice.get("audio", [])
+        audio = "".join([f"<|s_{a}|>" for a in audio])
+        text = voice.get("text", "")
+        text += " " if text else ""
+        return audio, text
 
     def __call__(
         self, query: Query, abort_event: Event
@@ -208,28 +211,32 @@ class Model:
         self.gen_settings.top_k = query.top_k
         self.gen_settings.top_p = query.top_p
 
-        voice = self.voices.get(query.voice.lower(), {})
-        audio = voice.get("audio", [])
-        audio = "".join([f"<|s_{a}|>" for a in audio])
-
-        transcript = voice.get("text", "")
-        transcript += " " if transcript else ""
-
         text = utils.clean_text(query.input)
-        chunks = utils.split_text(text, query.chunk)
+        pairs = utils.get_pairs(text, query.voice)
+        chunks = []
+
+        for pair in pairs:
+            split = utils.split_text(pair["text"], query.max_len)
+            chunks.extend([{"voice": pair["voice"], "text": s} for s in split])
+
         count = len(chunks)
         digits = len(str(count))
         tokens = 0
 
         with Timer() as timer:
             for index, chunk in enumerate(chunks):
+                if not query.reuse or index == 0 or audio != chunk["voice"]:
+                    audio, text = self.get_voice(chunk["voice"])
+
+                utils.log(chunk["text"])
+
                 messages = [
                     {
                         "role": "user",
                         "content": (
                             "Convert the text to speech:"
                             "<|TEXT_UNDERSTANDING_START|>"
-                            f"{transcript}{chunk}"
+                            f"{text}{chunk['text']}"
                             "<|TEXT_UNDERSTANDING_END|>"
                         ),
                     },
@@ -281,7 +288,7 @@ class Model:
 
                 if query.reuse:
                     audio = "".join(output)
-                    transcript = chunk
+                    text = chunk["text"]
 
                 yield output
 
@@ -293,11 +300,22 @@ class Model:
         outputs = []
 
         for output in self(query, abort_event):
-            outputs.extend(output)
+            if query.join:
+                outputs.extend(output)
+            else:
+                outputs.append(output)
 
-        if outputs:
-            return self.decode(outputs, query.rate, query.format)
+        if not outputs:
+            return
+
+        if query.join:
+            outputs = [outputs]
+
+        outputs = [self.decode(o) for o in outputs]
+        output = torch.cat(outputs, dim=-1)
+        return self.get_bytes(output, query.rate, query.format)
 
     def stream(self, query: Query, abort_event: Event) -> Generator[bytes, None, None]:
         for output in self(query, abort_event):
-            yield self.decode(output, query.rate, query.format)
+            output = self.decode(output)
+            yield self.get_bytes(output, query.rate, query.format)

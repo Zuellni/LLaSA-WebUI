@@ -20,11 +20,11 @@ parser.add_argument("--model", required=True)
 parser.add_argument("--codec", default="hkustaudio/xcodec2")
 parser.add_argument("--whisper", default="openai/whisper-large-v3-turbo")
 parser.add_argument("--voices", type=Path, default="voices")
-parser.add_argument("--cache-mode", choices=["q4", "q6", "q8", "fp16"], default="fp16")
+parser.add_argument("--cache", choices=["q4", "q6", "q8", "fp16"], default="fp16")
 parser.add_argument("--max-seq-len", type=int, default=2048)
 parser.add_argument("--device", default="cuda")
 parser.add_argument("--dtype", choices=["fp16", "bf16", "fp32"], default="fp32")
-parser.add_argument("--max-voice-len", type=int, default=10)
+parser.add_argument("--max-voice-len", type=int, default=15)
 parser.add_argument("--rebuild-cache", action="store_true")
 parser.add_argument("--sample-rate", type=int, default=16000)
 args = parser.parse_args()
@@ -34,7 +34,7 @@ model = Model(
     codec=args.codec,
     whisper=args.whisper,
     voices=args.voices,
-    cache_mode=args.cache_mode,
+    cache=args.cache,
     max_seq_len=args.max_seq_len,
     device=args.device,
     dtype=args.dtype,
@@ -74,7 +74,7 @@ def abort() -> None:
 
 @app.post("/cache")
 async def cache(file: UploadFile) -> list[str]:
-    return await model.cache(file)
+    return await model.cache_voice(file)
 
 
 @app.get("/settings")

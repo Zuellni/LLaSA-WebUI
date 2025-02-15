@@ -1,18 +1,25 @@
 import random
 from typing import Annotated, Any, Literal, get_args
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_core import PydanticUndefined
 
 
 class Query(BaseModel):
-    input: Annotated[str, Field(min_length=1)]
-    voice: Annotated[str, Field(default="", to_lower=True)]
+    model_config = ConfigDict(populate_by_name=True)
 
-    chunk: Annotated[int, Field(default=300, ge=1)]
-    format: Annotated[Literal["flac", "mp3", "ogg", "wav"], Field(default="wav")]
+    input: Annotated[str, Field(alias="text", min_length=1)]
+    voice: Annotated[str, Field(alias="audio", default="", to_lower=True)]
+
+    format: Annotated[
+        Literal["flac", "mp3", "ogg", "wav"],
+        Field(alias="response_format", default="wav"),
+    ]
+
+    max_len: Annotated[int, Field(default=300, ge=1)]
     rate: Annotated[int, Field(default=16000)]
 
+    join: Annotated[bool, Field(default=False)]
     reuse: Annotated[bool, Field(default=False)]
     seed: Annotated[int, Field(default=-1)]
 
@@ -21,8 +28,8 @@ class Query(BaseModel):
     top_k: Annotated[int, Field(default=50, ge=0)]
     top_p: Annotated[float, Field(default=1.0, ge=0.0)]
 
-    @field_validator("reuse", mode="before")
-    def validate_reuse(cls, value: bool | str) -> bool:
+    @field_validator("join", "reuse", mode="before")
+    def validate_bool(cls, value: bool | str) -> bool:
         if isinstance(value, str):
             return value.lower() == "true"
 

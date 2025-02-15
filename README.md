@@ -25,7 +25,7 @@ If you want to use `torch+cu126`, keep in mind that you'll need to compile `exll
 ```sh
 python server.py --model <path or repo id>
 ```
-You can use the HF [models](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) or EXL2 quants from [here](https://huggingface.co/collections/Annuvin/llasa-67aeef30ce5e4da91124027c). Add `--cache-mode q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net).
+You can use the HF [models](https://huggingface.co/collections/HKUSTAudio/llasa-679b87dbd06ac556cc0e0f44) or EXL2 quants from [here](https://huggingface.co/collections/Annuvin/llasa-67aeef30ce5e4da91124027c). Add `--cache q4 --dtype bf16` for less [VRAM usage](https://www.canirunthisllm.net).
 
 ## Preview
 ![Preview](assets/preview.png)

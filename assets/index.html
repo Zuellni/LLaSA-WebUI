@@ -18,8 +18,8 @@
 
         <hr>
 
-        <fieldset>
-            <label for="voice">Voice</label>
+        <label for="voice">Voice</label>
+        <fieldset class="select">
             <select id="voice" name="voice">
                 <option value="">none</option>
                 {% for voice in settings.voices %}
@@ -32,24 +32,25 @@
             <input accept="{% for format in settings.formats %}.{{ format }}, {% endfor %}" id="cache" type="file">
         </fieldset>
 
-        <label for="chunk">Chunk</label>
-        <input id="chunk" name="chunk" type="number" value="{{ settings.chunk }}">
+        <label for="maxLen">Chunk</label>
+        <input id="maxLen" name="max_len" type="number" value="{{ settings.max_len }}">
 
         <label for="format">Format</label>
         <select id="format" name="format">
             {% for format in settings.formats %}
-            <option value="{{ format }}" {% if format==settings.format %}selected{%endif %}>{{ format }}</option>
+            <option value="{{ format }}" {% if format==settings.format %}selected{% endif %}>{{ format }}</option>
             {% endfor %}
         </select>
 
         <label for="rate">Rate</label>
         <input id="rate" name="rate" type="number" value="{{ settings.rate }}">
 
-        <label for="reuse">Reuse</label>
-        <select id="reuse" name="reuse">
-            <option value="false" {% if not settings.reuse %}selected{% endif %}>no</option>
-            <option value="true" {% if settings.reuse %}selected{% endif %}>yes</option>
-        </select>
+        <label for="join">Join</label>
+        <fieldset class="checkbox">
+            <input id="join" name="join" type="checkbox" {% if settings.join %}checked{% endif %} value="true">
+            <label for="reuse">Reuse</label>
+            <input id="reuse" name="reuse" type="checkbox" {% if settings.reuse %}checked{% endif %} value="true">
+        </fieldset>
 
         <label for="seed">Seed</label>
         <input id="seed" name="seed" type="number" value="{{ settings.seed }}">

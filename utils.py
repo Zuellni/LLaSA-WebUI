@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from time import time
 from typing import Self
@@ -65,13 +66,14 @@ class Timer:
         self.total = self.end - self.start
 
     def __call__(self, text: str, precision: int = 2) -> None:
-        print(
-            f"[green]INFO[/green]:{' ' * 5}{text} "
-            f"in {self.total:.{precision}f} seconds."
-        )
+        log(f"{text} in {self.total:.{precision}f} seconds.")
 
 
-def cache(cache: str) -> ExLlamaV2CacheBase:
+def log(text: str) -> None:
+    print(f"[green]INFO[/green]:{' ' * 5}{text}")
+
+
+def get_cache(cache: str) -> ExLlamaV2CacheBase:
     match cache:
         case "q4":
             return ExLlamaV2Cache_Q4
@@ -83,7 +85,7 @@ def cache(cache: str) -> ExLlamaV2CacheBase:
             return ExLlamaV2Cache
 
 
-def dtype(dtype: str) -> torch.dtype:
+def get_dtype(dtype: str) -> torch.dtype:
     match dtype:
         case "fp16":
             return torch.float16
@@ -91,6 +93,30 @@ def dtype(dtype: str) -> torch.dtype:
             return torch.bfloat16
         case _:
             return torch.float32
+
+
+def get_pairs(text: list[str] | str, default: str) -> list[dict[str, str]]:
+    if isinstance(text, str):
+        text = text.splitlines()
+
+    pattern = re.compile(r"(?:{{((?:[^{}]|{(?!{)|}(?!}))*)}})([^{]*)")
+    default = default.lower()
+    chunks = []
+
+    for chunk in text:
+        chunk = chunk.strip()
+        matches = list(re.finditer(pattern, chunk))
+
+        if not matches:
+            chunks.append({"voice": default, "text": chunk})
+            continue
+
+        for match in matches:
+            voice = match.group(1).strip().lower()
+            text = match.group(2).strip()
+            chunks.append({"voice": voice, "text": text})
+
+    return chunks
 
 
 def process_audio(
@@ -129,11 +155,14 @@ def process_text(text: str, suffixes: list[str] = [".txt"]) -> str:
     return clean_text(text)
 
 
-def split_text(text: str, max_len: int) -> list[str]:
+def split_text(text: list[str] | str, max_len: int) -> list[str]:
+    if isinstance(text, str):
+        text = text.splitlines()
+
     splitter = TextSplitter(max_len)
     chunks = []
 
-    for line in text.splitlines():
+    for line in text:
         chunk = splitter.chunks(line)
         chunks.extend(chunk)
 

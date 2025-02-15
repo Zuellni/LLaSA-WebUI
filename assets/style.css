@@ -61,10 +61,16 @@ form {
 
 fieldset {
     display: grid;
-    grid-column: span 2;
-    grid-template-columns: 4rem 1fr 3.5rem;
     align-items: center;
     gap: 1rem;
+
+    &.select {
+        grid-template-columns: 1fr 3.5rem;
+    }
+
+    &.checkbox {
+        grid-template-columns: 1fr auto 1fr;
+    }
 }
 
 hr {
@@ -125,6 +131,32 @@ button,
 }
 
 input {
+    &[type=checkbox] {
+        position: relative;
+        cursor: pointer;
+
+        &::after {
+            content: "";
+            display: inline-block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2rem;
+            height: 2rem;
+            margin: .75rem;
+            border-radius: .75rem;
+            background: var(--shadow);
+            transition: .5s;
+        }
+
+        &:checked {
+            &::after {
+                left: calc(100% - 3.5rem);
+                background: var(--color);
+            }
+        }
+    }
+
     &[type=file] {
         display: none;
     }

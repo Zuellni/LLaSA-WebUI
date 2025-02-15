@@ -82,9 +82,9 @@ textarea.addEventListener("input", () => {
 cache.addEventListener("change", async (event) => {
     try {
         const files = event.target.files
-        picker.textContent = "folder"
 
         if (!files) {
+            picker.textContent = "folder"
             return
         }
 
