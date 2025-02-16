@@ -135,24 +135,36 @@ input {
         position: relative;
         cursor: pointer;
 
-        &::after {
+        &:before,
+        &:after {
             content: "";
-            display: inline-block;
+            display: block;
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 2rem;
-            height: 2rem;
-            margin: .75rem;
+            top: 1rem;
+            left: 1rem;
+            height: 1.5rem;
             border-radius: .75rem;
-            background: var(--shadow);
             transition: .5s;
         }
 
+        &::before {
+            width: calc(100% - 2rem);
+            background: var(--shadow);
+            transition-timing-function: ease-in;
+        }
+
+        &::after {
+            width: 1.5rem;
+            background: var(--color);
+        }
+
         &:checked {
+            &::before {
+                background: var(--hover);
+            }
+
             &::after {
-                left: calc(100% - 3.5rem);
-                background: var(--color);
+                left: calc(100% - 2.5rem);
             }
         }
     }
