@@ -185,8 +185,8 @@ input {
 
         &::-webkit-slider-runnable-track,
         &::-webkit-slider-thumb {
-            height: 1rem;
-            border-radius: 1rem;
+            height: 1.5rem;
+            border-radius: .75rem;
             appearance: none;
         }
 
@@ -196,9 +196,9 @@ input {
         }
 
         &::-webkit-slider-thumb {
-            width: 1rem;
+            width: 1.5rem;
             background: var(--color);
-            box-shadow: calc(-100vw - .5rem) 0 0 100vw var(--hover);
+            box-shadow: calc(-100vw - .75rem) 0 0 100vw var(--hover);
             transition: .5s;
         }
     }
