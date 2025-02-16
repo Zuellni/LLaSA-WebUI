@@ -26,51 +26,51 @@
                 <option value="{{ voice }}">{{ voice }}</option>
                 {% endfor %}
             </select>
-            <label for="cache" id="picker">
+            <label for="cache" id="picker" data-tooltip="Cache a voice file.">
                 <i>folder</i>
             </label>
             <input accept="{% for format in settings.formats %}.{{ format }}, {% endfor %}" id="cache" type="file">
         </fieldset>
 
-        <label for="maxLen">Chunk</label>
+        <label for="maxLen" data-tooltip="Max characters per chunk.">Chunk</label>
         <input id="maxLen" name="max_len" type="number" value="{{ settings.max_len }}">
 
-        <label for="format">Format</label>
+        <label for="format" data-tooltip="Output format.">Format</label>
         <select id="format" name="format">
             {% for format in settings.formats %}
             <option value="{{ format }}" {% if format==settings.format %}selected{% endif %}>{{ format }}</option>
             {% endfor %}
         </select>
 
-        <label for="rate">Rate</label>
+        <label for="rate" data-tooltip="Output sample rate.">Rate</label>
         <input id="rate" name="rate" type="number" value="{{ settings.rate }}">
 
-        <label for="join">Join</label>
+        <label for="join" data-tooltip="Join chunks before decoding.">Join</label>
         <fieldset class="checkbox">
             <input id="join" name="join" type="checkbox" {% if settings.join %}checked{% endif %} value="true">
-            <label for="reuse">Reuse</label>
+            <label for="reuse" data-tooltip="Use previous chunk as reference for the next one.">Reuse</label>
             <input id="reuse" name="reuse" type="checkbox" {% if settings.reuse %}checked{% endif %} value="true">
         </fieldset>
 
         <label for="seed">Seed</label>
         <input id="seed" name="seed" type="number" value="{{ settings.seed }}">
 
-        <label for="penalty">Penalty</label>
+        <label for="penalty" data-tooltip="Repetition penalty.">Penalty</label>
         <input id="penalty" name="penalty" step="0.001" type="number" value="{{ settings.penalty }}">
 
-        <label for="temperature">Temp</label>
+        <label for="temperature" data-tooltip="Temperature.">Temp</label>
         <input id="temperature" name="temperature" step="0.001" type="number" value="{{ settings.temperature }}">
 
-        <label for="topK">Top K</label>
+        <label for="topK" data-tooltip="Pick from the K most likely tokens.">Top K</label>
         <input id="topK" name="top_k" type="number" value="{{ settings.top_k }}">
 
-        <label for="topP">Top P</label>
+        <label for="topP" data-tooltip="Pick from the most likely tokens up to probability P.">Top P</label>
         <input id="topP" name="top_p" step="0.001" type="number" value="{{ settings.top_p }}">
 
         <hr>
 
         <div id="player">
-            <button id="submit" type="submit">
+            <button id="submit" type="submit" data-tooltip="Generate audio.">
                 <i>sync</i>
             </button>
             <button id="play" type="button">
@@ -84,7 +84,7 @@
                 </div>
                 <input id="volume" min="0.0" max="1.0" step="0.1" type="range" value="1.0">
             </div>
-            <button id="download" type="button">
+            <button id="download" type="button" data-tooltip="Download audio.">
                 <a>save</a>
             </button>
         </div>
