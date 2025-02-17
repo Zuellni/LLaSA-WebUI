@@ -74,7 +74,7 @@ def log(text: str) -> None:
 
 
 def get_cache(cache: str) -> ExLlamaV2CacheBase:
-    match cache:
+    match cache.lower():
         case "q4":
             return ExLlamaV2Cache_Q4
         case "q6":
@@ -86,7 +86,7 @@ def get_cache(cache: str) -> ExLlamaV2CacheBase:
 
 
 def get_dtype(dtype: str) -> torch.dtype:
-    match dtype:
+    match dtype.lower():
         case "fp16":
             return torch.float16
         case "bf16":

@@ -48,6 +48,8 @@ class Model:
         rebuild_cache: bool = False,
         sample_rate: int = 16000,
     ) -> None:
+        utils.log("Starting [[cyan]LLaSA WebUI[/cyan]].")
+
         self.cache = utils.get_cache(cache)
         self.max_seq_len = max_seq_len
 
@@ -106,14 +108,27 @@ class Model:
             codec = XCodec2Model.from_pretrained(path)
             return codec.eval().to(self.device, self.dtype)
 
-    def load_whisper(self, path: str) -> Pipeline:
+    def load_whisper(self, path: str | None = None) -> Pipeline:
+        if hasattr(self, "whisper") and self.whisper:
+            self.whisper.model.to(self.device)
+            return self.whisper
+
         with Progress("Loading whisper"):
-            return pipeline(
+            whisper = pipeline(
                 task="automatic-speech-recognition",
                 model=path,
                 device=self.device,
                 torch_dtype=self.dtype,
             )
+
+            whisper.model.cpu()
+            torch.cuda.empty_cache()
+            return whisper
+
+    def offload_whisper(self) -> None:
+        if hasattr(self, "whisper") and self.whisper:
+            self.whisper.model.cpu()
+            torch.cuda.empty_cache()
 
     def load_voices(self) -> dict[str, dict[str, Any]]:
         suffixes = [f".{s}" for s in Query.formats()]
@@ -165,6 +180,7 @@ class Model:
             text = self.voice_dir / f"{name}.txt"
 
             if not text.exists():
+                self.load_whisper()
                 text = self.whisper(audio[0].cpu().numpy())["text"]
 
         text = utils.process_text(text)
@@ -178,7 +194,7 @@ class Model:
             encoding="utf-8",
         )
 
-        torch.cuda.empty_cache()
+        self.offload_whisper()
         return name, {"audio": audio, "text": text}
 
     def decode(self, audio: list[str]) -> torch.Tensor:

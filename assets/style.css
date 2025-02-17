@@ -224,7 +224,7 @@ textarea {
 
     &::-webkit-resizer,
     &::-webkit-scrollbar {
-        display: none;
+        appearance: none;
     }
 }
 
@@ -256,6 +256,7 @@ textarea {
 
 [data-tooltip] {
     position: relative;
+    cursor: help;
 
     &::after {
         content: attr(data-tooltip);
