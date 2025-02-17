@@ -174,14 +174,38 @@ input {
     }
 
     &[type=number] {
-        &::-webkit-inner-spin-button {
-            display: none;
+        appearance: textfield;
+
+        &::-webkit-inner-spin-button,
+        &::-webkit-outer-spin-button {
+            appearance: none;
         }
     }
 
     &[type=range] {
         background: none;
         cursor: pointer;
+
+        &::-moz-range-progress,
+        &::-moz-range-thumb,
+        &::-moz-range-track {
+            height: 1.5rem;
+            border-radius: .75rem;
+        }
+
+        &::-moz-range-progress {
+            background: var(--hover);
+        }
+
+        &::-moz-range-thumb {
+            width: 1.5rem;
+            border: none;
+            background: var(--color);
+        }
+
+        &::-moz-range-track {
+            background: var(--shadow);
+        }
 
         &::-webkit-slider-runnable-track,
         &::-webkit-slider-thumb {
@@ -199,7 +223,6 @@ input {
             width: 1.5rem;
             background: var(--color);
             box-shadow: calc(-100vw - .75rem) 0 0 100vw var(--hover);
-            transition: .5s;
         }
     }
 }
@@ -246,9 +269,11 @@ textarea {
         span {
             color: var(--shadow);
 
-            &#current::after {
-                content: " / ";
-                color: var(--color);
+            &#current {
+                &::after {
+                    content: " / ";
+                    color: var(--color);
+                }
             }
         }
     }
