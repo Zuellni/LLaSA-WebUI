@@ -48,7 +48,7 @@ class Model:
         rebuild_cache: bool = False,
         sample_rate: int = 16000,
     ) -> None:
-        utils.log("Starting [[cyan]LLaSA WebUI[/cyan]].")
+        utils.log("Starting [[cyan]LLaSA WebUI[/cyan]]")
 
         self.cache = utils.get_cache(cache)
         self.max_seq_len = max_seq_len
