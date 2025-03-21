@@ -1,12 +1,8 @@
-import contextlib
 import json
 from io import BytesIO
 from pathlib import Path
 from threading import Event
 from typing import Any, Generator
-from warnings import simplefilter
-
-simplefilter("ignore")
 
 import torch
 import torchaudio
@@ -24,9 +20,7 @@ from fastapi import UploadFile
 from huggingface_hub import snapshot_download
 from jinja2 import Template
 from transformers import Pipeline, pipeline
-
-with contextlib.redirect_stdout(None):
-    from xcodec2.modeling_xcodec2 import XCodec2Model
+from xcodec2.modeling_xcodec2 import XCodec2Model
 
 import utils
 from schema import Query
