@@ -20,7 +20,7 @@ server_group.add_argument("-P", "--port", default=8020, type=int)
 
 path_group = parser.add_argument_group("Paths")
 path_group.add_argument("-m", "--model", required=True)
-path_group.add_argument("-c", "--codec", default="annuvin/xcodec2-fp32")
+path_group.add_argument("-c", "--codec", default="zuellni/xcodec2-fp32")
 path_group.add_argument("-w", "--whisper", default="openai/whisper-large-v3-turbo")
 path_group.add_argument("-v", "--voices", default="voices", type=Path)
 
